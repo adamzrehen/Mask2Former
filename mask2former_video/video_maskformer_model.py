@@ -262,6 +262,12 @@ class VideoMaskFormer(nn.Module):
             topk_indices = topk_indices // self.sem_seg_head.num_classes
             pred_masks = pred_masks[topk_indices]
 
+            # Apply the score threshold
+            keep_indices = scores_per_image > 0.8  # score_threshold
+            scores_per_image = scores_per_image[keep_indices]
+            labels_per_image = labels_per_image[keep_indices]
+            pred_masks = pred_masks[keep_indices]
+
             pred_masks = pred_masks[:, :, : img_size[0], : img_size[1]]
             pred_masks = F.interpolate(
                 pred_masks, size=(output_height, output_width), mode="bilinear", align_corners=False

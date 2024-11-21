@@ -1,6 +1,7 @@
-_BASE_: Base-YouTubeVIS-VideoInstanceSegmentation.yaml
+_BASE_: Base-kumc-VideoInstanceSegmentation.yaml
 MODEL:
-  WEIGHTS: "/home/adam/PycharmProjects/Mask2Former/models/model_final_34112b.pkl"
+#  WEIGHTS: "/home/adam/PycharmProjects/Mask2Former/models/model_final_34112b.pkl"
+  WEIGHTS: "/home/adam/PycharmProjects/Mask2Former/output/num_classes_40/model_final.pth"
   META_ARCHITECTURE: "VideoMaskFormer"
   SEM_SEG_HEAD:
     NAME: "MaskFormerHead"

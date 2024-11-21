@@ -13,6 +13,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import tempfile
 import time
 import warnings
+import re
 
 import cv2
 import numpy as np
@@ -126,19 +127,28 @@ if __name__ == "__main__":
             assert args.input, "The input path(s) was not found"
 
         vid_frames = []
-        for path in args.input:
+        sorted_paths = sorted(args.input, key=lambda s: int(re.search(r'(\d+)\.jpg$', s).group(1)))
+        for path in sorted_paths:
             img = read_image(path, format="BGR")
             vid_frames.append(img)
 
         start_time = time.time()
-        with autocast():
-            predictions, visualized_output = demo.run_on_video(vid_frames)
-        logger.info(
-            "detected {} instances per frame in {:.2f}s".format(
-                len(predictions["pred_scores"]), time.time() - start_time
+        chunk_size = 30
+        predictions_list = []
+        visualized_output_list = []
+        for i in range(0, len(vid_frames), chunk_size):
+            chunk = vid_frames[i:i + chunk_size]
+            with autocast():
+                predictions, visualized_output = demo.run_on_video(chunk)
+                predictions_list.append(predictions)
+                visualized_output_list.append(visualized_output)
+            logger.info(
+                "detected {} instances per frame in {:.2f}s".format(
+                    len(predictions["pred_scores"]), time.time() - start_time
+                )
             )
-        )
-
+        predictions = [item for sublist in predictions_list for item in sublist]
+        visualized_output = [item for sublist in visualized_output_list for item in sublist]
         if args.output:
             if args.save_frames:
                 for path, _vis_output in zip(args.input, visualized_output):

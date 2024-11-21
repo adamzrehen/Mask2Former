@@ -22,13 +22,23 @@ _PREDEFINED_SPLITS_YTVIS_2019 = {
 
 # ==== Predefined splits for YTVIS 2021 ===========
 _PREDEFINED_SPLITS_YTVIS_2021 = {
-    "ytvis_2021_train": ("ytvis_2021/train/JPEGImages",
-                         "ytvis_2021/train.json"),
-    "ytvis_2021_val": ("ytvis_2021/valid/JPEGImages",
-                       "ytvis_2021/valid.json"),
+    "ytvis_2021_train": ("/home/adam/Documents/Data/ytvis_2021/train/JPEGImages",
+                         "/home/adam/Documents/Data/ytvis_2021/train.json"),
+    "ytvis_2021_val": ("/home/adam/Documents/Data/ytvis_2021/valid/JPEGImages",
+                       "/home/adam/Documents/Data/ytvis_2021/valid.json"),
     "ytvis_2021_test": ("ytvis_2021/test/JPEGImages",
                         "ytvis_2021/test.json"),
 }
+
+_PREDEFINED_SPLITS_KUMC = {
+    "ytvis_2021_train": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/train/JPEGImages",
+                         "/home/adam/Documents/Data/KUMC Dataset/ytvis_format/train.json"),
+    "ytvis_2021_val": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid/JPEGImages",
+                       "/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid.json"),
+    "ytvis_2021_test": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid/JPEGImages",
+                        "/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid.json"),
+}
+
 
 
 def register_all_ytvis_2019(root):
@@ -43,7 +53,7 @@ def register_all_ytvis_2019(root):
 
 
 def register_all_ytvis_2021(root):
-    for key, (image_root, json_file) in _PREDEFINED_SPLITS_YTVIS_2021.items():
+    for key, (image_root, json_file) in _PREDEFINED_SPLITS_KUMC.items():
         # Assume pre-defined datasets live in `./datasets`.
         register_ytvis_instances(
             key,

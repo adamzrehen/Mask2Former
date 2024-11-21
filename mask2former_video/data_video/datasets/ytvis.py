@@ -111,6 +111,11 @@ YTVIS_CATEGORIES_2021 = [
     {"color": [199, 100, 0], "isthing": 1, "id": 40, "name": "zebra"},
 ]
 
+KUMC_CATEGORIES = [
+    {"color": [106, 0, 228], "isthing": 1, "id": 1, "name": "object"},
+]
+
+
 
 def _get_ytvis_2019_instances_meta():
     thing_ids = [k["id"] for k in YTVIS_CATEGORIES_2019 if k["isthing"] == 1]
@@ -128,12 +133,12 @@ def _get_ytvis_2019_instances_meta():
 
 
 def _get_ytvis_2021_instances_meta():
-    thing_ids = [k["id"] for k in YTVIS_CATEGORIES_2021 if k["isthing"] == 1]
-    thing_colors = [k["color"] for k in YTVIS_CATEGORIES_2021 if k["isthing"] == 1]
-    assert len(thing_ids) == 40, len(thing_ids)
+    thing_ids = [k["id"] for k in KUMC_CATEGORIES if k["isthing"] == 1]
+    thing_colors = [k["color"] for k in KUMC_CATEGORIES if k["isthing"] == 1]
+    assert len(thing_ids) == 1, len(thing_ids)
     # Mapping from the incontiguous YTVIS category id to an id in [0, 39]
     thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
-    thing_classes = [k["name"] for k in YTVIS_CATEGORIES_2021 if k["isthing"] == 1]
+    thing_classes = [k["name"] for k in KUMC_CATEGORIES if k["isthing"] == 1]
     ret = {
         "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
         "thing_classes": thing_classes,

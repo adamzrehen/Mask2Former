@@ -117,46 +117,6 @@ def process_sequence(group, sequence_id, category_id, base_dir):
     }
 
 
-def main(data_dir, output_json, category_id=1):
-    """Main function to process all sequences and generate JSON."""
-    video_annotations = []
-    videos = []
-    categories = [{"id": category_id, "name": "object", "supercategory": "generic"}]
-    sequence_id = 1
-
-    for sequence_folder in sorted(os.listdir(data_dir)):
-        sequence_path = os.path.join(data_dir, sequence_folder)
-        if os.path.isdir(sequence_path):
-            video_data = process_sequence(sequence_path, sequence_id, category_id)
-            videos.append({
-                "id": video_data["id"],
-                "file_names": [os.path.join(sequence_folder, _) for _ in video_data["file_names"]],
-                "height": video_data["height"],
-                "width": video_data["width"],
-                "length": video_data["length"]
-            })
-            video_annotations.extend(video_data["annotations"])
-            sequence_id += 1
-
-    # Combine into the final dataset structure
-    dataset = {
-        "info": {
-            "description": "Converted YouTube-VIS dataset",
-            "version": "1.0",
-            "year": 2024,
-            "contributor": "Script",
-            "date_created": "2024-11-20"
-        },
-        "videos": videos,
-        "annotations": video_annotations,
-        "categories": categories
-    }
-
-    # Save to JSON
-    with open(output_json, "w") as f:
-        json.dump(dataset, f, indent=4)
-
-
 def main(base_dir, csv_path, output_json, category_id=1):
     """
     Main function to process all sequences in a DataFrame and generate JSON.
@@ -180,14 +140,17 @@ def main(base_dir, csv_path, output_json, category_id=1):
         sequence_data = process_sequence(group, sequence_id, category_id, base_dir)
 
         videos.append({
-            "id": sequence_data["id"],
+            "id": int(sequence_data["id"]),  # Ensure conversion to Python int
             "file_names": group['Mask Path'].tolist(),
-            "height": sequence_data["height"],
-            "width": sequence_data["width"],
-            "length": len(group)
+            "height": int(sequence_data["height"]),
+            "width": int(sequence_data["width"]),
+            "length": int(len(group))
         })
         video_annotations.extend(sequence_data["annotations"])
         sequence_id += 1
+
+        if sequence_id == 3:
+            break
 
     # Combine into the final dataset structure
     dataset = {
@@ -203,14 +166,19 @@ def main(base_dir, csv_path, output_json, category_id=1):
         "categories": categories
     }
 
-    # Save to JSON
+    # Save to JSON with safe conversion
+    def convert_np(obj):
+        if isinstance(obj, (np.integer, np.floating)):
+            return obj.item()  # Convert NumPy scalars to Python types
+        raise TypeError("Object of type {0} is not JSON serializable".format(type(obj)))
+
     with open(output_json, "w") as f:
-        json.dump(dataset, f, indent=4)
+        json.dump(dataset, f, indent=4, default=convert_np)
 
 
 # Example usage
 if __name__ == "__main__":
     base_dir = "/home/adam/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
     csv_path = '/home/adam/Downloads/filtered_data.csv'
-    output_json = "/home/adam/Downloads/filtered_data.csv"
+    output_json = "/home/adam/Downloads/filtered_data.json"
     main(base_dir, csv_path, output_json)

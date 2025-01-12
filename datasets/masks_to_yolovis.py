@@ -141,16 +141,13 @@ def main(base_dir, csv_path, output_json, category_id=1):
 
         videos.append({
             "id": int(sequence_data["id"]),  # Ensure conversion to Python int
-            "file_names": group['Mask Path'].tolist(),
+            "file_names": group['Frame Path'].tolist(),
             "height": int(sequence_data["height"]),
             "width": int(sequence_data["width"]),
             "length": int(len(group))
         })
         video_annotations.extend(sequence_data["annotations"])
         sequence_id += 1
-
-        if sequence_id == 3:
-            break
 
     # Combine into the final dataset structure
     dataset = {

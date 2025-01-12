@@ -39,11 +39,6 @@ def generate_segmentation_mask(xmin, ymin, xmax, ymax, width, height):
     return mask
 
 
-import numpy as np
-
-
-import numpy as np
-
 def binary_mask_to_rle_np(binary_mask):
     rle = {"counts": [], "size": list(binary_mask.shape)}
 

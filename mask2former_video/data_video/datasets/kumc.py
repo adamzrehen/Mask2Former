@@ -10,7 +10,6 @@ import os
 import pycocotools.mask as mask_util
 from fvcore.common.file_io import PathManager
 from fvcore.common.timer import Timer
-
 from detectron2.structures import Boxes, BoxMode, PolygonMasks
 from detectron2.data import DatasetCatalog, MetadataCatalog
 
@@ -21,120 +20,21 @@ COCO-format annotations into dicts in "Detectron2 format".
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["load_ytvis_json", "register_ytvis_instances"]
+__all__ = ["load_ytvis_json", "register_kumc_instances"]
 
 
-YTVIS_CATEGORIES_2019 = [
-    {"color": [220, 20, 60], "isthing": 1, "id": 1, "name": "person"},
-    {"color": [0, 82, 0], "isthing": 1, "id": 2, "name": "giant_panda"},
-    {"color": [119, 11, 32], "isthing": 1, "id": 3, "name": "lizard"},
-    {"color": [165, 42, 42], "isthing": 1, "id": 4, "name": "parrot"},
-    {"color": [134, 134, 103], "isthing": 1, "id": 5, "name": "skateboard"},
-    {"color": [0, 0, 142], "isthing": 1, "id": 6, "name": "sedan"},
-    {"color": [255, 109, 65], "isthing": 1, "id": 7, "name": "ape"},
-    {"color": [0, 226, 252], "isthing": 1, "id": 8, "name": "dog"},
-    {"color": [5, 121, 0], "isthing": 1, "id": 9, "name": "snake"},
-    {"color": [0, 60, 100], "isthing": 1, "id": 10, "name": "monkey"},
-    {"color": [250, 170, 30], "isthing": 1, "id": 11, "name": "hand"},
-    {"color": [100, 170, 30], "isthing": 1, "id": 12, "name": "rabbit"},
-    {"color": [179, 0, 194], "isthing": 1, "id": 13, "name": "duck"},
-    {"color": [255, 77, 255], "isthing": 1, "id": 14, "name": "cat"},
-    {"color": [120, 166, 157], "isthing": 1, "id": 15, "name": "cow"},
-    {"color": [73, 77, 174], "isthing": 1, "id": 16, "name": "fish"},
-    {"color": [0, 80, 100], "isthing": 1, "id": 17, "name": "train"},
-    {"color": [182, 182, 255], "isthing": 1, "id": 18, "name": "horse"},
-    {"color": [0, 143, 149], "isthing": 1, "id": 19, "name": "turtle"},
-    {"color": [174, 57, 255], "isthing": 1, "id": 20, "name": "bear"},
-    {"color": [0, 0, 230], "isthing": 1, "id": 21, "name": "motorbike"},
-    {"color": [72, 0, 118], "isthing": 1, "id": 22, "name": "giraffe"},
-    {"color": [255, 179, 240], "isthing": 1, "id": 23, "name": "leopard"},
-    {"color": [0, 125, 92], "isthing": 1, "id": 24, "name": "fox"},
-    {"color": [209, 0, 151], "isthing": 1, "id": 25, "name": "deer"},
-    {"color": [188, 208, 182], "isthing": 1, "id": 26, "name": "owl"},
-    {"color": [145, 148, 174], "isthing": 1, "id": 27, "name": "surfboard"},
-    {"color": [106, 0, 228], "isthing": 1, "id": 28, "name": "airplane"},
-    {"color": [0, 0, 70], "isthing": 1, "id": 29, "name": "truck"},
-    {"color": [199, 100, 0], "isthing": 1, "id": 30, "name": "zebra"},
-    {"color": [166, 196, 102], "isthing": 1, "id": 31, "name": "tiger"},
-    {"color": [110, 76, 0], "isthing": 1, "id": 32, "name": "elephant"},
-    {"color": [133, 129, 255], "isthing": 1, "id": 33, "name": "snowboard"},
-    {"color": [0, 0, 192], "isthing": 1, "id": 34, "name": "boat"},
-    {"color": [183, 130, 88], "isthing": 1, "id": 35, "name": "shark"},
-    {"color": [130, 114, 135], "isthing": 1, "id": 36, "name": "mouse"},
-    {"color": [107, 142, 35], "isthing": 1, "id": 37, "name": "frog"},
-    {"color": [0, 228, 0], "isthing": 1, "id": 38, "name": "eagle"},
-    {"color": [174, 255, 243], "isthing": 1, "id": 39, "name": "earless_seal"},
-    {"color": [255, 208, 186], "isthing": 1, "id": 40, "name": "tennis_racket"},
+KUMC_CATEGORIES = [
+    {"color": [106, 0, 228], "isthing": 1, "id": 1, "name": "object"},
 ]
 
 
-YTVIS_CATEGORIES_2021 = [
-    {"color": [106, 0, 228], "isthing": 1, "id": 1, "name": "airplane"},
-    {"color": [174, 57, 255], "isthing": 1, "id": 2, "name": "bear"},
-    {"color": [255, 109, 65], "isthing": 1, "id": 3, "name": "bird"},
-    {"color": [0, 0, 192], "isthing": 1, "id": 4, "name": "boat"},
-    {"color": [0, 0, 142], "isthing": 1, "id": 5, "name": "car"},
-    {"color": [255, 77, 255], "isthing": 1, "id": 6, "name": "cat"},
-    {"color": [120, 166, 157], "isthing": 1, "id": 7, "name": "cow"},
-    {"color": [209, 0, 151], "isthing": 1, "id": 8, "name": "deer"},
-    {"color": [0, 226, 252], "isthing": 1, "id": 9, "name": "dog"},
-    {"color": [179, 0, 194], "isthing": 1, "id": 10, "name": "duck"},
-    {"color": [174, 255, 243], "isthing": 1, "id": 11, "name": "earless_seal"},
-    {"color": [110, 76, 0], "isthing": 1, "id": 12, "name": "elephant"},
-    {"color": [73, 77, 174], "isthing": 1, "id": 13, "name": "fish"},
-    {"color": [250, 170, 30], "isthing": 1, "id": 14, "name": "flying_disc"},
-    {"color": [0, 125, 92], "isthing": 1, "id": 15, "name": "fox"},
-    {"color": [107, 142, 35], "isthing": 1, "id": 16, "name": "frog"},
-    {"color": [0, 82, 0], "isthing": 1, "id": 17, "name": "giant_panda"},
-    {"color": [72, 0, 118], "isthing": 1, "id": 18, "name": "giraffe"},
-    {"color": [182, 182, 255], "isthing": 1, "id": 19, "name": "horse"},
-    {"color": [255, 179, 240], "isthing": 1, "id": 20, "name": "leopard"},
-    {"color": [119, 11, 32], "isthing": 1, "id": 21, "name": "lizard"},
-    {"color": [0, 60, 100], "isthing": 1, "id": 22, "name": "monkey"},
-    {"color": [0, 0, 230], "isthing": 1, "id": 23, "name": "motorbike"},
-    {"color": [130, 114, 135], "isthing": 1, "id": 24, "name": "mouse"},
-    {"color": [165, 42, 42], "isthing": 1, "id": 25, "name": "parrot"},
-    {"color": [220, 20, 60], "isthing": 1, "id": 26, "name": "person"},
-    {"color": [100, 170, 30], "isthing": 1, "id": 27, "name": "rabbit"},
-    {"color": [183, 130, 88], "isthing": 1, "id": 28, "name": "shark"},
-    {"color": [134, 134, 103], "isthing": 1, "id": 29, "name": "skateboard"},
-    {"color": [5, 121, 0], "isthing": 1, "id": 30, "name": "snake"},
-    {"color": [133, 129, 255], "isthing": 1, "id": 31, "name": "snowboard"},
-    {"color": [188, 208, 182], "isthing": 1, "id": 32, "name": "squirrel"},
-    {"color": [145, 148, 174], "isthing": 1, "id": 33, "name": "surfboard"},
-    {"color": [255, 208, 186], "isthing": 1, "id": 34, "name": "tennis_racket"},
-    {"color": [166, 196, 102], "isthing": 1, "id": 35, "name": "tiger"},
-    {"color": [0, 80, 100], "isthing": 1, "id": 36, "name": "train"},
-    {"color": [0, 0, 70], "isthing": 1, "id": 37, "name": "truck"},
-    {"color": [0, 143, 149], "isthing": 1, "id": 38, "name": "turtle"},
-    {"color": [0, 228, 0], "isthing": 1, "id": 39, "name": "whale"},
-    {"color": [199, 100, 0], "isthing": 1, "id": 40, "name": "zebra"},
-]
-
-
-
-def _get_ytvis_2019_instances_meta():
-    thing_ids = [k["id"] for k in YTVIS_CATEGORIES_2019 if k["isthing"] == 1]
-    thing_colors = [k["color"] for k in YTVIS_CATEGORIES_2019 if k["isthing"] == 1]
-    assert len(thing_ids) == 40, len(thing_ids)
+def _get_kumc_instances_meta():
+    thing_ids = [k["id"] for k in KUMC_CATEGORIES if k["isthing"] == 1]
+    thing_colors = [k["color"] for k in KUMC_CATEGORIES if k["isthing"] == 1]
+    assert len(thing_ids) == 1, len(thing_ids)
     # Mapping from the incontiguous YTVIS category id to an id in [0, 39]
     thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
-    thing_classes = [k["name"] for k in YTVIS_CATEGORIES_2019 if k["isthing"] == 1]
-    ret = {
-        "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
-        "thing_classes": thing_classes,
-        "thing_colors": thing_colors,
-    }
-    return ret
-
-
-def _get_ytvis_2021_instances_meta():
-    thing_ids = [k["id"] for k in YTVIS_CATEGORIES_2021 if k["isthing"] == 1]
-    thing_colors = [k["color"] for k in YTVIS_CATEGORIES_2021 if k["isthing"] == 1]
-    assert len(thing_ids) == 40, len(thing_ids)
-    # Mapping from the incontiguous YTVIS category id to an id in [0, 39]
-    thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
-    thing_classes = [k["name"] for k in YTVIS_CATEGORIES_2021 if k["isthing"] == 1]
+    thing_classes = [k["name"] for k in KUMC_CATEGORIES if k["isthing"] == 1]
     ret = {
         "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
         "thing_classes": thing_classes,
@@ -269,7 +169,7 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
     return dataset_dicts
 
 
-def register_ytvis_instances(name, metadata, json_file, image_root):
+def register_kumc_instances(name, metadata, json_file, image_root):
     """
     Register a dataset in YTVIS's json annotation format for
     instance tracking.

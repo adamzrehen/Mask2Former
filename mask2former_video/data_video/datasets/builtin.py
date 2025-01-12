@@ -9,6 +9,16 @@ from .ytvis import (
     _get_ytvis_2021_instances_meta,
 )
 
+from .kumc import (
+    register_kumc_instances,
+    _get_kumc_instances_meta
+)
+
+from .ichilov import (
+    register_ichilov_instances,
+    _get_ichilov_instances_meta,
+)
+
 # ==== Predefined splits for YTVIS 2019 ===========
 _PREDEFINED_SPLITS_YTVIS_2019 = {
     "ytvis_2019_train": ("ytvis_2019/train/JPEGImages",
@@ -31,12 +41,21 @@ _PREDEFINED_SPLITS_YTVIS_2021 = {
 }
 
 _PREDEFINED_SPLITS_KUMC = {
-    "ytvis_2021_train": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/train/JPEGImages",
+    "kumc_train": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/train/JPEGImages",
                          "/home/adam/Documents/Data/KUMC Dataset/ytvis_format/train.json"),
-    "ytvis_2021_val": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid/JPEGImages",
+    "kumc_val": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid/JPEGImages",
                        "/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid.json"),
-    "ytvis_2021_test": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid/JPEGImages",
+    "kumc_test": ("/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid/JPEGImages",
                         "/home/adam/Documents/Data/KUMC Dataset/ytvis_format/valid.json"),
+}
+
+_PREDEFINED_SPLITS_ICHILOV = {
+    "ichilov_train": ("/home/adam/mnt/qnap/annotation_data/data/sam2",
+                         "/home/adam/Downloads/filtered_data.csv"),
+    "ichilov_val": ("/home/adam/mnt/qnap/annotation_data/data/sam2",
+                       "/home/adam/Downloads/filtered_data.csv"),
+    "ichilov_test": ("/home/adam/mnt/qnap/annotation_data/data/sam2",
+                        "/home/adam/Downloads/filtered_data.csv"),
 }
 
 
@@ -53,11 +72,33 @@ def register_all_ytvis_2019(root):
 
 
 def register_all_ytvis_2021(root):
-    for key, (image_root, json_file) in _PREDEFINED_SPLITS_KUMC.items():
+    for key, (image_root, json_file) in _PREDEFINED_SPLITS_YTVIS_2021.items():
         # Assume pre-defined datasets live in `./datasets`.
         register_ytvis_instances(
             key,
             _get_ytvis_2021_instances_meta(),
+            os.path.join(root, json_file) if "://" not in json_file else json_file,
+            os.path.join(root, image_root),
+        )
+
+
+def register_all_kumc(root):
+    for key, (image_root, json_file) in _PREDEFINED_SPLITS_KUMC.items():
+        # Assume pre-defined datasets live in `./datasets`.
+        register_kumc_instances(
+            key,
+            _get_kumc_instances_meta(),
+            os.path.join(root, json_file) if "://" not in json_file else json_file,
+            os.path.join(root, image_root),
+        )
+
+
+def register_all_ichilov(root):
+    for key, (image_root, json_file) in _PREDEFINED_SPLITS_ICHILOV.items():
+        # Assume pre-defined datasets live in `./datasets`.
+        register_ichilov_instances(
+            key,
+            _get_ichilov_instances_meta(),
             os.path.join(root, json_file) if "://" not in json_file else json_file,
             os.path.join(root, image_root),
         )
@@ -68,3 +109,5 @@ if __name__.endswith(".builtin"):
     _root = os.getenv("DETECTRON2_DATASETS", "datasets")
     register_all_ytvis_2019(_root)
     register_all_ytvis_2021(_root)
+    register_all_kumc(_root)
+    register_all_ichilov(_root)

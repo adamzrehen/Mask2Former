@@ -21,7 +21,7 @@ from detectron2.data import transforms as T
 
 from .augmentation import build_augmentation
 
-__all__ = ["YTVISDatasetMapper", "CocoClipDatasetMapper"]
+__all__ = ["YTVISDatasetMapper", "CocoClipDatasetMapper", "IchilovDatasetMapper"]
 
 
 def filter_empty_instances(instances, by_box=True, by_mask=True, box_threshold=1e-5):
@@ -267,6 +267,47 @@ class YTVISDatasetMapper:
             dataset_dict["instances"].append(instances)
 
         return dataset_dict
+
+
+class IchilovDatasetMapper:
+    @configurable
+    def __init__(
+        self,
+        is_train: bool,
+        *,
+        augmentations: List[Union[T.Augmentation, T.Transform]],
+        image_format: str,
+        use_instance_mask: bool = False,
+        sampling_frame_num: int = 2,
+        sampling_frame_range: int = 5,
+        sampling_frame_shuffle: bool = False,
+        num_classes: int = 40,
+    ):
+        self.is_train = is_train
+
+    @classmethod
+    def from_config(cls, cfg, is_train: bool = True):
+        augs = build_augmentation(cfg, is_train)
+
+        sampling_frame_num = cfg.INPUT.SAMPLING_FRAME_NUM
+        sampling_frame_range = cfg.INPUT.SAMPLING_FRAME_RANGE
+        sampling_frame_shuffle = cfg.INPUT.SAMPLING_FRAME_SHUFFLE
+
+        ret = {
+            "is_train": is_train,
+            "augmentations": augs,
+            "image_format": cfg.INPUT.FORMAT,
+            "use_instance_mask": cfg.MODEL.MASK_ON,
+            "sampling_frame_num": sampling_frame_num,
+            "sampling_frame_range": sampling_frame_range,
+            "sampling_frame_shuffle": sampling_frame_shuffle,
+            "num_classes": cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES,
+        }
+
+        return ret
+
+    def __call__(self, dataset_dict):
+        pass
 
 
 class CocoClipDatasetMapper:

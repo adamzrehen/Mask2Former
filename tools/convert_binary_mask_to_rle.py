@@ -56,10 +56,18 @@ def main_parallel(base_dir):
     color_map = {v: k for k, v in get_color_map().items()}
     tasks = []
 
-    for root, _, files in tqdm(os.walk(base_dir)):
-        for file in files:
-            if file.lower().endswith('.png'):
-                tasks.append((os.path.join(root, file), color_map))
+    for video_dir in os.listdir(base_dir):
+        video_path = os.path.join(base_dir, video_dir)
+
+        masks_path = os.path.join(video_path, 'output_masks')
+        if os.path.exists(masks_path):
+            for clip_dir in os.listdir(masks_path):
+                clip_path = os.path.join(masks_path, clip_dir)
+
+                for file in os.listdir(clip_path):
+                    file_path = os.path.join(clip_path, file)
+                    if os.path.isfile(file_path) and file.lower().endswith('.png'):
+                        tasks.append((file_path, color_map))
 
     with Pool(processes=os.cpu_count()) as pool:
         list(tqdm(pool.imap(process_image, tasks), total=len(tasks)))

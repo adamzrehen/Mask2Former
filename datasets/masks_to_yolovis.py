@@ -40,8 +40,8 @@ def process_sequence(group, sequence_id, base_dir):
                 annotations[key] = {
                     "segmentations": [None for _ in range(len(group))],
                     "bboxes": [None for _ in range(len(group))],
-                    "height": rle_data[key]["size"][1],
-                    "width": rle_data[key]["size"][2],
+                    "height": rle_data[key]["size"][0],
+                    "width": rle_data[key]["size"][1],
                     "areas": [None for _ in range(len(group))],
                     "id": sequence_id,
                     "video_id": sequence_id,
@@ -52,7 +52,7 @@ def process_sequence(group, sequence_id, base_dir):
 
             annotations[key]['segmentations'][k] = {
                 "counts": rle_data[key]["counts"],
-                "size": [rle_data[key]["size"][1], rle_data[key]["size"][2]]
+                "size": [rle_data[key]["size"][0], rle_data[key]["size"][1]]
             }
             annotations[key]['bboxes'][k] = bbox
             annotations[key]['areas'][k] = area

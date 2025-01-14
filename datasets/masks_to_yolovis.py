@@ -4,13 +4,36 @@ import json
 import tqdm
 import pandas as pd
 from pycocotools import mask as mask_utils
+from PIL import Image
+
 
 
 def process_sequence(group, sequence_id, base_dir):
     annotations = {}
+    object_id = 0
     for k, (_, row) in enumerate(group.iterrows()):
         mask_path = os.path.join(base_dir, row['Mask Path']) if not pd.isna(row['Mask Path']) else None
+        frame_path = os.path.join(base_dir, row['Frame Path']) if not pd.isna(row['Frame Path']) else None
         category_id = 1  # Replace with actual category ID if available
+
+        if k == 0 and frame_path is not None:
+            image = Image.open(frame_path)
+            width, height = image.size
+
+        # Add data to annotations
+        if object_id not in annotations:
+            annotations[object_id] = {
+                "segmentations": [None for _ in range(len(group))],
+                "bboxes": [None for _ in range(len(group))],
+                "height": height,
+                "width": width,
+                "areas": [None for _ in range(len(group))],
+                "id": sequence_id,
+                "video_id": sequence_id,
+                "category_id": category_id,
+                "iscrowd": 0,
+                "length": 1
+            }
 
         # Skip if the mask_path doesn't exist
         if mask_path is None or not os.path.exists(mask_path):
@@ -20,7 +43,7 @@ def process_sequence(group, sequence_id, base_dir):
         with open(mask_path, 'r') as f:
             rle_data = json.load(f)
 
-        for key, val in rle_data.items():
+        for object_id, (key, val) in enumerate(rle_data.items()):
             # Decode RLE mask
             segmentation_mask = mask_utils.decode(val)
 
@@ -36,12 +59,12 @@ def process_sequence(group, sequence_id, base_dir):
                 area = 0
 
             # Add data to annotations
-            if key not in annotations:
-                annotations[key] = {
+            if object_id not in annotations:
+                annotations[object_id] = {
                     "segmentations": [None for _ in range(len(group))],
                     "bboxes": [None for _ in range(len(group))],
-                    "height": rle_data[key]["size"][0],
-                    "width": rle_data[key]["size"][1],
+                    "height": height,
+                    "width": width,
                     "areas": [None for _ in range(len(group))],
                     "id": sequence_id,
                     "video_id": sequence_id,
@@ -50,12 +73,12 @@ def process_sequence(group, sequence_id, base_dir):
                     "length": 1
                 }
 
-            annotations[key]['segmentations'][k] = {
+            annotations[object_id]['segmentations'][k] = {
                 "counts": rle_data[key]["counts"],
                 "size": [rle_data[key]["size"][0], rle_data[key]["size"][1]]
             }
-            annotations[key]['bboxes'][k] = bbox
-            annotations[key]['areas'][k] = area
+            annotations[object_id]['bboxes'][k] = bbox
+            annotations[object_id]['areas'][k] = area
 
     return list(annotations.values())
 
@@ -80,7 +103,7 @@ def main(base_dir, csv_path, output_json):
         sequence_data = process_sequence(group, sequence_id, base_dir)
 
         videos.append({
-            "id": int(sequence_data[0]["id"]),  # Ensure conversion to Python int
+            "id": sequence_id,  # Ensure conversion to Python int
             "file_names": group['Frame Path'].tolist(),
             "height": int(sequence_data[0]["height"]),
             "width": int(sequence_data[0]["width"]),

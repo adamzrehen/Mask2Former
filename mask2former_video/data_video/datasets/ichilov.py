@@ -19,15 +19,19 @@ logger = logging.getLogger(__name__)
 __all__ = ["load_ytvis_json", "register_ichilov_instances"]
 
 ICIHLOV_CATEGORIES = [
-    {"color": [0, 255, 0], "isthing": 1, "id": 1, "name": "object"},
-
+    {"color": [0, 255, 0], "isthing": 1, "id": 1, "name": "Adenoma"},
+    {"color": [255, 0, 0], "isthing": 1, "id": 2, "name": "SCC"},
+    {"color": [0, 0, 255], "isthing": 1, "id": 3, "name": "Adenocarcinoma"},
+    {"color": [0, 0, 0], "isthing": 1, "id": 4, "name": "Normal Tissue"},
+    {"color": [255, 255, 0], "isthing": 1, "id": 5, "name": "Other"},
 ]
+
 
 
 def _get_ichilov_instances_meta():
     thing_ids = [k["id"] for k in ICIHLOV_CATEGORIES if k["isthing"] == 1]
     thing_colors = [k["color"] for k in ICIHLOV_CATEGORIES if k["isthing"] == 1]
-    assert len(thing_ids) == 1, len(thing_ids)
+    assert len(thing_ids) == 5, len(thing_ids)
     # Mapping from the incontiguous YTVIS category id to an id in [0, 39]
     thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
     thing_classes = [k["name"] for k in ICIHLOV_CATEGORIES if k["isthing"] == 1]

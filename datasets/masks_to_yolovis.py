@@ -89,9 +89,6 @@ def main(base_dir, csv_path, output_json):
         video_annotations.extend(sequence_data)
         sequence_id += 1
 
-        if sequence_id == 10:
-            break
-
     # Combine into the final dataset structure
     dataset = {
         "info": {

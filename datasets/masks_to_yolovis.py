@@ -7,6 +7,26 @@ from pycocotools import mask as mask_utils
 from PIL import Image
 
 
+def split_groups(grouped):
+    # Initialize an empty list to hold the split groups
+    split_groups = []
+
+    # Iterate through each group
+    for (video, clip_id), group in grouped:
+        # Calculate the size of each split
+        n_splits = 5
+        split_size = len(group) // n_splits
+        remainder = len(group) % n_splits
+
+        # Use np.array_split to split the group into 5 parts
+        splits = np.array_split(group, n_splits)
+
+        # Assign a split ID to each part
+        for i, split in enumerate(splits):
+            split['Split ID'] = i + 1
+            split_groups.append(split)
+    return split_groups
+
 
 def process_sequence(group, sequence_id, base_dir):
     annotations = {}
@@ -83,7 +103,7 @@ def process_sequence(group, sequence_id, base_dir):
     return list(annotations.values())
 
 
-def main(base_dir, csv_path, output_json):
+def main(base_dir, csv_path, output_json, test=False):
     video_annotations = []
     videos = []
     categories = [{"id": 1, "name": "Adenoma", "supercategory": "generic"},
@@ -98,7 +118,12 @@ def main(base_dir, csv_path, output_json):
     # Group by 'Video' and 'Clip ID'
     grouped = dataframe.groupby(['Video', 'Clip ID'])
 
-    for (_, _), group in tqdm.tqdm(grouped):
+    if test:
+        grouped = split_groups(grouped)
+    else:
+        grouped = [group for _, group in grouped]
+
+    for group in tqdm.tqdm(grouped):
         # Process the group as a sequence
         sequence_data = process_sequence(group, sequence_id, base_dir)
 
@@ -139,6 +164,6 @@ def main(base_dir, csv_path, output_json):
 # Example usage
 if __name__ == "__main__":
     base_dir = "/home/adam/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
-    csv_path = '/home/adam/Downloads/filtered_data.csv'
-    output_json = "/home/adam/Downloads/filtered_data.json"
-    main(base_dir, csv_path, output_json)
+    csv_path = '/home/adam/Documents/Experiments/Mask2Former/test.csv'
+    output_json = "/home/adam/Documents/Experiments/Mask2Former/test.json"
+    main(base_dir, csv_path, output_json, test=True)

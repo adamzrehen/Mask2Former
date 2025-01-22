@@ -127,7 +127,7 @@ if __name__ == "__main__":
             assert args.input, "The input path(s) was not found"
 
         vid_frames = []
-        sorted_paths = sorted(args.input, key=lambda s: int(re.search(r'(\d+)\.jpg$', s).group(1)))
+        sorted_paths = sorted(args.input, key=lambda s: int(re.search(r'(\d+)\.(png|jpg)$', s).group(1)))
         for path in sorted_paths:
             img = read_image(path, format="BGR")
             vid_frames.append(img)

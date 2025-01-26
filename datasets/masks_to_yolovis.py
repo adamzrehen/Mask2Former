@@ -7,17 +7,12 @@ from pycocotools import mask as mask_utils
 from PIL import Image
 
 
-def split_groups(grouped):
+def split_groups(grouped, n_splits):
     # Initialize an empty list to hold the split groups
     split_groups = []
 
     # Iterate through each group
-    for (video, clip_id), group in grouped:
-        # Calculate the size of each split
-        n_splits = 5
-        split_size = len(group) // n_splits
-        remainder = len(group) % n_splits
-
+    for (_, _), group in grouped:
         # Use np.array_split to split the group into 5 parts
         splits = np.array_split(group, n_splits)
 
@@ -119,7 +114,7 @@ def main(base_dir, csv_path, output_json, test=False):
     grouped = dataframe.groupby(['Video', 'Clip ID'])
 
     if test:
-        grouped = split_groups(grouped)
+        grouped = split_groups(grouped, n_splits=5)
     else:
         grouped = [group for _, group in grouped]
 
@@ -164,6 +159,6 @@ def main(base_dir, csv_path, output_json, test=False):
 # Example usage
 if __name__ == "__main__":
     base_dir = "/home/adam/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
-    csv_path = '/home/adam/Documents/Experiments/Mask2Former/test.csv'
-    output_json = "/home/adam/Documents/Experiments/Mask2Former/test.json"
-    main(base_dir, csv_path, output_json, test=True)
+    csv_path = '/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train_split.csv'
+    output_json = "/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train.json"
+    main(base_dir, csv_path, output_json, test=False)

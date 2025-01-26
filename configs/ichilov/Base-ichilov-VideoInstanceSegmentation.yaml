@@ -44,7 +44,7 @@ INPUT:
     ENABLED: False
     TYPE: "absolute_range"
     SIZE: (600, 720)
-  FORMAT: "RGB"
+  FORMAT: "BGR"  # originally RGB
 TEST:
   EVAL_PERIOD: 0
 DATALOADER:

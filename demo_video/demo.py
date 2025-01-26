@@ -70,6 +70,12 @@ def get_parser():
     )
 
     parser.add_argument(
+        "--video_filename",
+        help="Name of output video",
+        default="visualization.mp4"
+    )
+
+    parser.add_argument(
         "--save-frames",
         default=False,
         help="Save frame level image outputs.",
@@ -159,7 +165,7 @@ if __name__ == "__main__":
 
             cap = cv2.VideoCapture(-1)
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            out = cv2.VideoWriter(os.path.join(args.output, "visualization.mp4"), fourcc, 10.0, (W, H), True)
+            out = cv2.VideoWriter(os.path.join(args.output, args.video_filename + '.mp4'), fourcc, 10.0, (W, H), True)
             for _vis_output in visualized_output:
                 frame = _vis_output.get_image()[:, :, ::-1]
                 out.write(frame)

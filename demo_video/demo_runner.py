@@ -24,7 +24,8 @@ def main(csv_file, output_path, config_file, base_dir):
             "python", "demo.py",
             f"--config-file={config_file}",
             f"--input={input_path}",
-            f"--output={output_path}"
+            f"--output={output_path}",
+            f"--video_filename={file_name}"
         ]
 
         try:
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     main(args.csv_file, args.output_path, args.config_file, args.base_dir)
 
 
-    # --csv_file='/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train_split.csv'
+    # --csv_file="/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train_split.csv"
     # --output_path="/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/results"
     # --config_file="/home/adam/PycharmProjects/Mask2Former/configs/ichilov/video_maskformer2_R50_bs16_8ep.yaml"
     # --base_dir="/home/adam/mnt/qnap/annotation_data/data/sam2"

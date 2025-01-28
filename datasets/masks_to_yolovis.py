@@ -2,6 +2,7 @@ import numpy as np
 import os
 import json
 import tqdm
+import cv2
 import pandas as pd
 from pycocotools import mask as mask_utils
 from PIL import Image
@@ -23,42 +24,41 @@ def split_groups(grouped, n_splits):
     return split_groups
 
 
+def rle_encode_mask(mask_dict):
+    rle_encoded_masks = {}
+
+    for mask_id, binary_mask in mask_dict.items():
+        rle = mask_utils.encode(np.asfortranarray(binary_mask.squeeze().astype(np.uint8)))
+        rle["counts"] = rle["counts"].decode("utf-8")
+        rle_encoded_masks[mask_id] = rle
+    return rle_encoded_masks
+
+
 def process_sequence(group, sequence_id, base_dir):
     annotations = {}
-    object_id = 0
     for k, (_, row) in enumerate(group.iterrows()):
         mask_path = os.path.join(base_dir, row['Mask Path']) if not pd.isna(row['Mask Path']) else None
         frame_path = os.path.join(base_dir, row['Frame Path']) if not pd.isna(row['Frame Path']) else None
-        category_id = 1  # Replace with actual category ID if available
 
         if k == 0 and frame_path is not None:
             image = Image.open(frame_path)
             width, height = image.size
 
-        # Add data to annotations
-        if object_id not in annotations:
-            annotations[object_id] = {
-                "segmentations": [None for _ in range(len(group))],
-                "bboxes": [None for _ in range(len(group))],
-                "height": height,
-                "width": width,
-                "areas": [None for _ in range(len(group))],
-                "id": sequence_id,
-                "video_id": sequence_id,
-                "category_id": category_id,
-                "iscrowd": 0,
-                "length": 1
-            }
-
         # Skip if the mask_path doesn't exist
-        if mask_path is None or not os.path.exists(mask_path):
-            continue
+        if mask_path is None or len(mask_path) == 0 or not os.path.exists(mask_path):
+            img = cv2.imread(frame_path)
+            img = np.zeros((img.shape[0], img.shape[1]))
+            rle_data = rle_encode_mask({-1: img})
+        else:
+            # Read RLE mask from JSON file
+            with open(mask_path, 'r') as f:
+                rle_data = json.load(f)
+            if not rle_data:
+                img = cv2.imread(frame_path)
+                img = np.zeros((img.shape[0], img.shape[1]))
+                rle_data = rle_encode_mask({-1: img})
 
-        # Read RLE mask from JSON file
-        with open(mask_path, 'r') as f:
-            rle_data = json.load(f)
-
-        for object_id, (key, val) in enumerate(rle_data.items()):
+        for key, val in rle_data.items():
             # Decode RLE mask
             segmentation_mask = mask_utils.decode(val)
 
@@ -70,30 +70,30 @@ def process_sequence(group, sequence_id, base_dir):
                 bbox = [xmin, ymin, xmax - xmin, ymax - ymin]
                 area = (xmax - xmin) * (ymax - ymin)
             else:
-                bbox = None
+                bbox = [0, 0, width, height]
                 area = 0
 
             # Add data to annotations
-            if object_id not in annotations:
-                annotations[object_id] = {
+            if int(key) not in annotations:
+                annotations[int(key)] = {
                     "segmentations": [None for _ in range(len(group))],
                     "bboxes": [None for _ in range(len(group))],
                     "height": height,
                     "width": width,
                     "areas": [None for _ in range(len(group))],
-                    "id": sequence_id,
+                    "id": int(key) + 1,
                     "video_id": sequence_id,
-                    "category_id": category_id,
+                    "category_id": 1,  # set to Adenoma for now
                     "iscrowd": 0,
                     "length": 1
                 }
 
-            annotations[object_id]['segmentations'][k] = {
+            annotations[int(key)]['segmentations'][k] = {
                 "counts": rle_data[key]["counts"],
                 "size": [rle_data[key]["size"][0], rle_data[key]["size"][1]]
             }
-            annotations[object_id]['bboxes'][k] = bbox
-            annotations[object_id]['areas'][k] = area
+            annotations[int(key)]['bboxes'][k] = bbox
+            annotations[int(key)]['areas'][k] = area
 
     return list(annotations.values())
 

@@ -36,6 +36,7 @@ def rle_encode_mask(mask_dict):
 
 def process_sequence(group, sequence_id, base_dir):
     annotations = {}
+    no_objects = 0
     for k, (_, row) in enumerate(group.iterrows()):
         mask_path = os.path.join(base_dir, row['Mask Path']) if not pd.isna(row['Mask Path']) else None
         frame_path = os.path.join(base_dir, row['Frame Path']) if not pd.isna(row['Frame Path']) else None
@@ -49,6 +50,7 @@ def process_sequence(group, sequence_id, base_dir):
             img = cv2.imread(frame_path)
             img = np.zeros((img.shape[0], img.shape[1]))
             rle_data = rle_encode_mask({-1: img})
+            no_objects += 1
         else:
             # Read RLE mask from JSON file
             with open(mask_path, 'r') as f:
@@ -57,6 +59,7 @@ def process_sequence(group, sequence_id, base_dir):
                 img = cv2.imread(frame_path)
                 img = np.zeros((img.shape[0], img.shape[1]))
                 rle_data = rle_encode_mask({-1: img})
+                no_objects += 1
 
         for key, val in rle_data.items():
             # Decode RLE mask
@@ -95,7 +98,7 @@ def process_sequence(group, sequence_id, base_dir):
             annotations[int(key)]['bboxes'][k] = bbox
             annotations[int(key)]['areas'][k] = area
 
-    return list(annotations.values())
+    return list(annotations.values()), no_objects
 
 
 def main(base_dir, csv_path, output_json, test=False):
@@ -118,9 +121,13 @@ def main(base_dir, csv_path, output_json, test=False):
     else:
         grouped = [group for _, group in grouped]
 
+    total_no_objects = 0
+    total_frames = 0
     for group in tqdm.tqdm(grouped):
         # Process the group as a sequence
-        sequence_data = process_sequence(group, sequence_id, base_dir)
+        sequence_data, no_objects = process_sequence(group, sequence_id, base_dir)
+        total_no_objects += no_objects
+        total_frames += len(group)
 
         videos.append({
             "id": sequence_id,  # Ensure conversion to Python int
@@ -145,6 +152,8 @@ def main(base_dir, csv_path, output_json, test=False):
         "annotations": video_annotations,
         "categories": categories
     }
+    print(f'Total number of frames: {total_frames} ')
+    print(f'Total number of frames without objects: {total_no_objects} ')
 
     # Save to JSON with safe conversion
     def convert_np(obj):

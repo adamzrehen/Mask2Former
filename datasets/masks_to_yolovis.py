@@ -98,7 +98,12 @@ def process_sequence(group, sequence_id, base_dir):
             annotations[int(key)]['bboxes'][k] = bbox
             annotations[int(key)]['areas'][k] = area
 
-    return list(annotations.values()), no_objects
+    if annotations.keys() == {-1}:
+        annotations = []
+    else:
+        annotations = list(annotations.values())
+
+    return annotations, height, width, no_objects
 
 
 def main(base_dir, csv_path, output_json, test=False):
@@ -125,15 +130,15 @@ def main(base_dir, csv_path, output_json, test=False):
     total_frames = 0
     for group in tqdm.tqdm(grouped):
         # Process the group as a sequence
-        sequence_data, no_objects = process_sequence(group, sequence_id, base_dir)
+        sequence_data, height, width, no_objects = process_sequence(group, sequence_id, base_dir)
         total_no_objects += no_objects
         total_frames += len(group)
 
         videos.append({
             "id": sequence_id,  # Ensure conversion to Python int
             "file_names": group['Frame Path'].tolist(),
-            "height": int(sequence_data[0]["height"]),
-            "width": int(sequence_data[0]["width"]),
+            "height": height,
+            "width": width,
             "length": int(len(group))
         })
         video_annotations.extend(sequence_data)

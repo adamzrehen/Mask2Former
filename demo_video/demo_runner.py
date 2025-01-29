@@ -25,7 +25,7 @@ def main(csv_file, output_path, config_file, base_dir):
             f"--config-file={config_file}",
             f"--input={input_path}",
             f"--output={output_path}",
-            f"--video_filename={file_name}"
+            f"--video_filename={file_name}",
             f"--overlay_masks=True"
         ]
 

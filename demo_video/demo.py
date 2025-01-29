@@ -7,6 +7,9 @@ import os
 
 # fmt: off
 import sys
+
+from networkx.algorithms.clique import enumerate_all_cliques
+
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 # fmt: on
 
@@ -14,6 +17,7 @@ import tempfile
 import time
 import warnings
 import re
+import json
 
 import cv2
 import numpy as np
@@ -25,11 +29,12 @@ from detectron2.config import get_cfg
 from detectron2.data.detection_utils import read_image
 from detectron2.projects.deeplab import add_deeplab_config
 from detectron2.utils.logger import setup_logger
-
+from pathlib import Path
 from mask2former import add_maskformer2_config
 from mask2former_video import add_maskformer2_video_config
 from predictor import VisualizationDemo
-
+from pycocotools import mask as mask_utils
+from utils import show_mask
 
 # constants
 WINDOW_NAME = "mask2former video demo"
@@ -45,6 +50,14 @@ def setup_cfg(args):
     cfg.merge_from_list(args.opts)
     cfg.freeze()
     return cfg
+
+
+def rle_decode_mask(rle_dict):
+    stacked_masks = {}
+    for key, val in rle_dict.items():
+        mask = mask_utils.decode(val)
+        stacked_masks[int(key)] = mask
+    return stacked_masks
 
 
 def get_parser():
@@ -72,7 +85,7 @@ def get_parser():
     parser.add_argument(
         "--video_filename",
         help="Name of output video",
-        default="visualization.mp4"
+        default="visualization"
     )
 
     parser.add_argument(
@@ -93,6 +106,14 @@ def get_parser():
         default=[],
         nargs=argparse.REMAINDER,
     )
+    parser.add_argument(
+        "--overlay_masks",
+        type=bool,
+        default=False,
+        help="A file or directory to save output visualizations. "
+        "If not given, will show output in an OpenCV window.",
+    )
+
     return parser
 
 
@@ -133,10 +154,20 @@ if __name__ == "__main__":
             assert args.input, "The input path(s) was not found"
 
         vid_frames = []
+        masks = []
         sorted_paths = sorted(args.input, key=lambda s: int(re.search(r'(\d+)\.(png|jpg)$', s).group(1)))
         for path in sorted_paths:
             img = read_image(path, format="BGR")
             vid_frames.append(img)
+            if args.overlay_masks:
+                clip_folder = Path(path).parent.stem
+                mask_path = Path(path).parents[2] / 'output_masks' / clip_folder / (Path(path).stem + '.json')
+                mask = None
+                if os.path.exists(mask_path):
+                    with open(mask_path, 'r') as f:
+                        rle_data = json.load(f)
+                    mask = rle_decode_mask(rle_data)
+                masks.append(mask)
 
         start_time = time.time()
         chunk_size = 30
@@ -166,8 +197,12 @@ if __name__ == "__main__":
             cap = cv2.VideoCapture(-1)
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
             out = cv2.VideoWriter(os.path.join(args.output, args.video_filename + '.mp4'), fourcc, 10.0, (W, H), True)
-            for _vis_output in visualized_output:
+            for k, _vis_output in enumerate(visualized_output):
                 frame = _vis_output.get_image()[:, :, ::-1]
+                if args.overlay_masks:
+                    for obj_id, mask in masks[k].items():
+                        masked_frame = frame.copy()
+                        frame = show_mask(mask, image=masked_frame, obj_id=obj_id)
                 out.write(frame)
             cap.release()
             out.release()

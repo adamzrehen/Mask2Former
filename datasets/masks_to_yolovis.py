@@ -173,6 +173,6 @@ def main(base_dir, csv_path, output_json, test=False):
 # Example usage
 if __name__ == "__main__":
     base_dir = "/home/adam/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
-    csv_path = '/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train_split.csv'
-    output_json = "/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train.json"
-    main(base_dir, csv_path, output_json, test=False)
+    csv_path = '/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/test_split.csv'
+    output_json = "/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/test.json"
+    main(base_dir, csv_path, output_json, test=True)

@@ -6,6 +6,8 @@ from typing import Tuple
 import torch
 from torch import nn
 from torch.nn import functional as F
+from clearml import Task
+from datetime import datetime
 
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
@@ -130,6 +132,17 @@ class VideoMaskFormer(nn.Module):
             oversample_ratio=cfg.MODEL.MASK_FORMER.OVERSAMPLE_RATIO,
             importance_sample_ratio=cfg.MODEL.MASK_FORMER.IMPORTANCE_SAMPLE_RATIO,
         )
+
+        # Generate the current timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        # Initialize clearml task with timestamp in task name
+        task = Task.init(
+            project_name="Mask2Former",
+            task_name=f"Sample_{timestamp}",
+            task_type=Task.TaskTypes.training,  # Optional, can also be TaskTypes.testing, etc.
+        )
+        task.connect(cfg)
 
         return {
             "backbone": backbone,

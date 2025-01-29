@@ -29,11 +29,8 @@ def get_color_map():
 
 def show_mask(mask, image=None, obj_id=None):
     color_map = get_color_map()
-    if obj_id is None or obj_id not in color_map:
-        raise ValueError(f"Invalid or missing object ID: {obj_id}. Valid IDs are {list(color_map.keys())}")
 
-    # Get the color for the given object ID
-    color = np.array(color_map[obj_id + 1][::-1]) / 255.0  # Normalize to [0, 1] range
+    color = np.array(color_map[1][::-1]) / 255.0  # Normalize to [0, 1] range
     color = np.append(color, 0.6)  # Add alpha channel
 
     h, w = mask.shape[-2:]

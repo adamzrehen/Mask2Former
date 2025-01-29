@@ -200,9 +200,10 @@ if __name__ == "__main__":
             for k, _vis_output in enumerate(visualized_output):
                 frame = _vis_output.get_image()[:, :, ::-1]
                 if args.overlay_masks:
-                    for obj_id, mask in masks[k].items():
+                    if masks[k] is not None:
                         masked_frame = frame.copy()
-                        frame = show_mask(mask, image=masked_frame, obj_id=obj_id)
+                        for obj_id, mask in masks[k].items():
+                            frame = show_mask(mask, image=masked_frame, obj_id=obj_id)
                 out.write(frame)
             cap.release()
             out.release()

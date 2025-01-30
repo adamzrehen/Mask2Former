@@ -1,29 +1,14 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def get_color_map():
-    # Note these colors are RGB. Should be inverted for BGR
+    cmap = plt.get_cmap("tab10")
     return {
-        0: (128, 128, 128),   # Background: Grey
-        1: (255, 0, 0),       # Object 1: Red
-        2: (0, 255, 0),       # Object 2: Green
-        3: (0, 0, 255),       # Object 3: Blue
-        4: (255, 255, 0),     # Object 4: Yellow
-        5: (0, 255, 255),     # Object 5: Cyan
-        6: (255, 0, 255),     # Object 6: Magenta
-        7: (255, 165, 0),     # Object 7: Orange
-        8: (128, 0, 0),       # Object 8: Maroon
-        9: (0, 128, 0),       # Object 9: Dark Green
-        10: (0, 0, 128),      # Object 10: Navy Blue
-        11: (255, 69, 0),     # Object 11: Red-Orange
-        12: (0, 128, 128),    # Object 12: Teal
-        13: (128, 0, 128),    # Object 13: Purple
-        14: (255, 192, 203),  # Object 14: Pink
-        15: (255, 215, 0),    # Object 15: Gold
-        16: (0, 255, 127),    # Object 16: Spring Green
-        17: (70, 130, 180),   # Object 17: Steel Blue
-        18: (255, 240, 245),  # Object 18: Lavender Blush
-        19: (255, 20, 147),   # Object 19: Deep Pink
+        0: (128, 128, 128),  # Background: Grey
+        1: (31, 119, 180),  # Blue
+        2: (255, 127, 14),  # Orange
+        **{i: tuple(int(c * 255) for c in cmap(i - 1)[:3]) for i in range(3, 20)}
     }
 
 

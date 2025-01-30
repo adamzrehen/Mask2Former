@@ -19,7 +19,7 @@ def get_color_map():
 def show_mask(mask, image=None, obj_id=None):
     color_map = get_color_map()
 
-    color = np.array(color_map[1][::-1]) / 255.0  # Normalize to [0, 1] range
+    color = np.array(color_map[obj_id + 1]) / 255.0  # Normalize to [0, 1] range
     color = np.append(color, 0.6)  # Add alpha channel
 
     h, w = mask.shape[-2:]

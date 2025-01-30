@@ -3,6 +3,7 @@ import os
 import json
 import tqdm
 import numpy as np
+import matplotlib.pyplot as plt
 from pathlib import Path
 from tqdm import tqdm
 from multiprocessing import Pool
@@ -10,17 +11,12 @@ from pycocotools import mask as mask_utils
 
 
 def get_color_map():
+    cmap = plt.get_cmap("tab10")
     return {
-        0: (128, 128, 128),   # Background: Grey
-        1: (255, 0, 0),       # Object 1: Red
-        2: (0, 255, 0),       # Object 2: Green
-        3: (0, 0, 255),       # Object 3: Blue
-        4: (255, 255, 0),     # Object 4: Yellow
-        5: (0, 255, 255),     # Object 5: Cyan
-        6: (255, 0, 255),     # Object 6: Magenta
-        7: (255, 165, 0),     # Object 7: Orange
-        8: (128, 0, 0),       # Object 8: Maroon
-        9: (0, 128, 0),       # Object 9: Dark Green
+        0: (128, 128, 128),  # Background: Grey
+        1: (31, 119, 180),  # Blue
+        2: (255, 127, 14),  # Orange
+        **{i: tuple(int(c * 255) for c in cmap(i - 1)[:3]) for i in range(3, 20)}
     }
 
 

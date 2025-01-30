@@ -6,6 +6,7 @@ import io
 import json
 import logging
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import pycocotools.mask as mask_util
 from fvcore.common.file_io import PathManager
@@ -18,12 +19,13 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 logger = logging.getLogger(__name__)
 __all__ = ["load_ytvis_json", "register_ichilov_instances"]
 
+cmap = plt.get_cmap("tab10")
 ICIHLOV_CATEGORIES = [
-    {"color": [0, 255, 0], "isthing": 1, "id": 1, "name": "Adenoma"},
-    {"color": [255, 0, 0], "isthing": 1, "id": 2, "name": "SCC"},
-    {"color": [0, 0, 255], "isthing": 1, "id": 3, "name": "Adenocarcinoma"},
-    {"color": [0, 0, 0], "isthing": 1, "id": 4, "name": "Normal Tissue"},
-    {"color": [255, 255, 0], "isthing": 1, "id": 5, "name": "Other"},
+    {"color": [31, 119, 180], "isthing": 1, "id": 1, "name": "Adenoma"},
+    {"color": [255, 127, 14], "isthing": 1, "id": 2, "name": "SCC"},
+    {"color": tuple(int(c * 255) for c in cmap(2)[:3]), "isthing": 1, "id": 3, "name": "Adenocarcinoma"},
+    {"color": tuple(int(c * 255) for c in cmap(3)[:3]), "isthing": 1, "id": 4, "name": "Normal Tissue"},
+    {"color": tuple(int(c * 255) for c in cmap(4)[:3]), "isthing": 1, "id": 5, "name": "Other"},
 ]
 
 

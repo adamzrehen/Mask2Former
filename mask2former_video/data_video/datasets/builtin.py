@@ -51,11 +51,11 @@ _PREDEFINED_SPLITS_KUMC = {
 
 _PREDEFINED_SPLITS_ICHILOV = {
     "ichilov_train": ("/home/adam/mnt/qnap/annotation_data/data/sam2",
-                         "/home/adam/Downloads/filtered_data.json"),
+                         "/home/adam/Documents/Experiments/Mask2Former/train.json"),
     "ichilov_val": ("/home/adam/mnt/qnap/annotation_data/data/sam2",
-                       "/home/adam/Downloads/filtered_data.json"),
+                       "/home/adam/Documents/Experiments/Mask2Former/test.json"),
     "ichilov_test": ("/home/adam/mnt/qnap/annotation_data/data/sam2",
-                        "/home/adam/Downloads/filtered_data.json"),
+                        "/home/adam/Documents/Experiments/Mask2Former/test.json"),
 }
 
 

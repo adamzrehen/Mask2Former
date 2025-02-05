@@ -5,3 +5,4 @@ timm
 h5py
 submitit
 scikit-image
+setuptools==59.5.0  # to solve 'distutils' has no attribute 'version'

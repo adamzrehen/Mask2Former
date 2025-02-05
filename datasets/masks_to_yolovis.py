@@ -84,7 +84,7 @@ def process_sequence(group, sequence_id, base_dir):
                     "height": height,
                     "width": width,
                     "areas": [None for _ in range(len(group))],
-                    "id": int(key) + 1,
+                    "id": sequence_id,  # according to ytvoseval this should be video_id
                     "video_id": sequence_id,
                     "category_id": 1,  # set to Adenoma for now
                     "iscrowd": 0,
@@ -173,6 +173,6 @@ def main(base_dir, csv_path, output_json, test=False):
 # Example usage
 if __name__ == "__main__":
     base_dir = "/home/adam/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
-    csv_path = '/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/test_split.csv'
-    output_json = "/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/test.json"
+    csv_path = '/home/adam/Documents/Experiments/Mask2Former/January_30_2025/test_split.csv'
+    output_json = "/home/adam/Documents/Experiments/Mask2Former/January_30_2025/test_split.json"
     main(base_dir, csv_path, output_json, test=True)

@@ -47,8 +47,7 @@ def process_sequence(group, sequence_id, base_dir):
 
         # Skip if the mask_path doesn't exist
         if mask_path is None or len(mask_path) == 0 or not os.path.exists(mask_path):
-            img = cv2.imread(frame_path)
-            img = np.zeros((img.shape[0], img.shape[1]))
+            img = np.zeros((height, width))
             rle_data = rle_encode_mask({-1: img})
             no_objects += 1
         else:
@@ -56,8 +55,7 @@ def process_sequence(group, sequence_id, base_dir):
             with open(mask_path, 'r') as f:
                 rle_data = json.load(f)
             if not rle_data:
-                img = cv2.imread(frame_path)
-                img = np.zeros((img.shape[0], img.shape[1]))
+                img = np.zeros((height, width))
                 rle_data = rle_encode_mask({-1: img})
                 no_objects += 1
 
@@ -172,7 +170,7 @@ def main(base_dir, csv_path, output_json, test=False):
 
 # Example usage
 if __name__ == "__main__":
-    base_dir = "/home/adam/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
-    csv_path = '/home/adam/Documents/Experiments/Mask2Former/January_30_2025/test_split.csv'
-    output_json = "/home/adam/Documents/Experiments/Mask2Former/January_30_2025/test_split.json"
-    main(base_dir, csv_path, output_json, test=True)
+    base_dir = "/home/cortica/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
+    csv_path = '/home/cortica/Documents/Adam/Experiments/Mask2Former/train_split.csv'
+    output_json = "/home/cortica/Documents/Adam/Experiments/Mask2Former/train_split.json"
+    main(base_dir, csv_path, output_json, test=False)

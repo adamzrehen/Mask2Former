@@ -8,7 +8,7 @@ def train_test_split(csv_path, output_dir):
     df = pd.read_csv(csv_path)
 
     # Group videos
-    grouped_videos = df.groupby(['Video'])
+    grouped_videos = df.groupby(['video_name'])
     summary = []
 
     # Initialize empty DataFrames for train and test sets
@@ -17,7 +17,7 @@ def train_test_split(csv_path, output_dir):
 
     for video, video_group in grouped_videos:
         # Group clips within each video
-        grouped_clips = video_group.groupby(['Clip ID'])
+        grouped_clips = video_group.groupby(['clip_id'])
 
         # Shuffle the group keys to ensure randomness
         grouped_clip_keys = list(grouped_clips.groups.keys())
@@ -63,6 +63,6 @@ def train_test_split(csv_path, output_dir):
 
 
 if __name__ == "__main__":
-    csv_path = '/home/adam/Documents/Experiments/Mask2Former/train.csv'
-    output_dir = "/home/adam/Documents/Experiments/Mask2Former/split"
+    csv_path = '/home/cortica/Documents/Adam/Experiments/Mask2Former/filtered_data.csv'
+    output_dir = "/home/cortica/Documents/Adam/Experiments/Mask2Former"
     train_test_split(csv_path, output_dir)

@@ -2,7 +2,6 @@ import numpy as np
 import os
 import json
 import tqdm
-import cv2
 import pandas as pd
 from pycocotools import mask as mask_utils
 from PIL import Image
@@ -38,8 +37,8 @@ def process_sequence(group, sequence_id, base_dir):
     annotations = {}
     no_objects = 0
     for k, (_, row) in enumerate(group.iterrows()):
-        mask_path = os.path.join(base_dir, row['Mask Path']) if not pd.isna(row['Mask Path']) else None
-        frame_path = os.path.join(base_dir, row['Frame Path']) if not pd.isna(row['Frame Path']) else None
+        mask_path = os.path.join(base_dir, row['relative_mask_path']) if not pd.isna(row['relative_mask_path']) else None
+        frame_path = os.path.join(base_dir, row['relative_image_path']) if not pd.isna(row['relative_image_path']) else None
 
         if k == 0 and frame_path is not None:
             image = Image.open(frame_path)
@@ -117,13 +116,14 @@ def main(base_dir, csv_path, output_json, test=False):
     dataframe = pd.read_csv(csv_path)
 
     # Group by 'Video' and 'Clip ID'
-    grouped = dataframe.groupby(['Video', 'Clip ID'])
+    grouped = dataframe.groupby(['video_name', 'clip_id'])
 
     if test:
         grouped = split_groups(grouped, n_splits=5)
     else:
         grouped = [group for _, group in grouped]
 
+    grouped = [_ for _ in grouped if len(_) > 1]
     total_no_objects = 0
     total_frames = 0
     for group in tqdm.tqdm(grouped):
@@ -134,7 +134,7 @@ def main(base_dir, csv_path, output_json, test=False):
 
         videos.append({
             "id": sequence_id,  # Ensure conversion to Python int
-            "file_names": group['Frame Path'].tolist(),
+            "file_names": group['relative_image_path'].tolist(),
             "height": height,
             "width": width,
             "length": int(len(group))

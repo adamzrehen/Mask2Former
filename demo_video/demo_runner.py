@@ -8,7 +8,7 @@ from datetime import datetime
 def main(csv_file, output_path, config_file, base_dir):
 
     df = pd.read_csv(csv_file)
-    grouped_videos = df.groupby(['Video', 'Clip ID'])
+    grouped_videos = df.groupby(['video_name', 'clip_id'])
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.join(output_path, timestamp)
     os.mkdir(output_dir)
@@ -16,8 +16,8 @@ def main(csv_file, output_path, config_file, base_dir):
     for group in tqdm.tqdm(grouped_videos):
         file_name = group[0][0] + '_clip_' + str(group[0][1])
         output_path = os.path.join(output_dir, file_name)
-        input_path = os.path.join(base_dir, Path(group[1]['Frame Path'].iloc[0]).parent,
-                                  '*' + Path(group[1]['Frame Path'].iloc[0]).suffix)
+        input_path = os.path.join(base_dir, Path(group[1]['relative_image_path'].iloc[0]).parent,
+                                  '*' + Path(group[1]['relative_image_path'].iloc[0]).suffix)
 
         # Command to execute demo.py
         command = [

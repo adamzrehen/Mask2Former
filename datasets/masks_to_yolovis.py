@@ -7,6 +7,22 @@ from pycocotools import mask as mask_utils
 from PIL import Image
 
 
+categories = [{"id": 1, "name": "adenoma", "supercategory": "generic"},
+              {"id": 2, "name": "scc", "supercategory": "generic"},
+              {"id": 3, "name": "adenocarcinoma", "supercategory": "generic"},
+              {"id": 4, "name": "normal_tissue", "supercategory": "generic"},
+              {"id": 5, "name": "other", "supercategory": "generic"}]
+
+
+# Create a dictionary mapping category names to IDs
+category_dict = {cat["name"]: cat["id"] for cat in categories}
+
+
+# Function to get the ID given a category name
+def get_category_id(category_name):
+    return category_dict.get(category_name, None)  # Returns None if the name is not found
+
+
 def split_groups(grouped, n_splits):
     # Initialize an empty list to hold the split groups
     split_groups = []
@@ -39,6 +55,7 @@ def process_sequence(group, sequence_id, base_dir):
     for k, (_, row) in enumerate(group.iterrows()):
         mask_path = os.path.join(base_dir, row['relative_mask_path']) if not pd.isna(row['relative_mask_path']) else None
         frame_path = os.path.join(base_dir, row['relative_image_path']) if not pd.isna(row['relative_image_path']) else None
+        category_types = eval(row['object_type'])
 
         if k == 0 and frame_path is not None:
             image = Image.open(frame_path)
@@ -61,6 +78,11 @@ def process_sequence(group, sequence_id, base_dir):
         for key, val in rle_data.items():
             # Decode RLE mask
             segmentation_mask = mask_utils.decode(val)
+            if len(category_types) - 1 >= int(key):
+                category_id = get_category_id(category_types[int(key)])
+            else:
+                print('Misalignment between rle data and metadata')
+                continue
 
             # Generate bounding box from segmentation
             positions = np.where(segmentation_mask > 0)
@@ -83,7 +105,7 @@ def process_sequence(group, sequence_id, base_dir):
                     "areas": [None for _ in range(len(group))],
                     "id": sequence_id,  # according to ytvoseval this should be video_id
                     "video_id": sequence_id,
-                    "category_id": 1,  # set to Adenoma for now
+                    "category_id": category_id,  # set to Adenoma for now
                     "iscrowd": 0,
                     "length": 1
                 }
@@ -106,11 +128,6 @@ def process_sequence(group, sequence_id, base_dir):
 def main(base_dir, csv_path, output_json, test=False):
     video_annotations = []
     videos = []
-    categories = [{"id": 1, "name": "Adenoma", "supercategory": "generic"},
-                  {"id": 2, "name": "SCC", "supercategory": "generic"},
-                  {"id": 3, "name": "Adenocarcinoma", "supercategory": "generic"},
-                  {"id": 4, "name": "Normal Tissue", "supercategory": "generic"},
-                  {"id": 5, "name": "Other", "supercategory": "generic"}]
 
     sequence_id = 1
     dataframe = pd.read_csv(csv_path)

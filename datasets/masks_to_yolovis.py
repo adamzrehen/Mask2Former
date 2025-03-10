@@ -49,7 +49,7 @@ def rle_encode_mask(mask_dict):
     return rle_encoded_masks
 
 
-def process_sequence(group, sequence_id, base_dir):
+def process_sequence(group, sequence_id, base_dir, misalignment_dict):
     annotations = {}
     no_objects = 0
     for k, (_, row) in enumerate(group.iterrows()):
@@ -81,7 +81,11 @@ def process_sequence(group, sequence_id, base_dir):
             if len(category_types) - 1 >= int(key):
                 category_id = get_category_id(category_types[int(key)])
             else:
-                print('Misalignment between rle data and metadata')
+                if not row['video_name'] in misalignment_dict:
+                    misalignment_dict[row['video_name']] = {}
+                if not row['clip_id'] in misalignment_dict[row['video_name']]:
+                    misalignment_dict[row['video_name']][row['clip_id']] = 0
+                misalignment_dict[row['video_name']][row['clip_id']] += 1
                 continue
 
             # Generate bounding box from segmentation
@@ -122,7 +126,7 @@ def process_sequence(group, sequence_id, base_dir):
     else:
         annotations = list(annotations.values())
 
-    return annotations, height, width, no_objects
+    return annotations, height, width, no_objects, misalignment_dict
 
 
 def main(base_dir, csv_path, output_json, test=False):
@@ -143,9 +147,11 @@ def main(base_dir, csv_path, output_json, test=False):
     grouped = [_ for _ in grouped if len(_) > 1]
     total_no_objects = 0
     total_frames = 0
+    misalignment_dict = {}
     for group in tqdm.tqdm(grouped):
         # Process the group as a sequence
-        sequence_data, height, width, no_objects = process_sequence(group, sequence_id, base_dir)
+        sequence_data, height, width, no_objects, misalignment_dict = process_sequence(group, sequence_id, base_dir,
+                                                                                       misalignment_dict)
         total_no_objects += no_objects
         total_frames += len(group)
 
@@ -174,6 +180,10 @@ def main(base_dir, csv_path, output_json, test=False):
     }
     print(f'Total number of frames: {total_frames} ')
     print(f'Total number of frames without objects: {total_no_objects} ')
+    print(f'Misalignment between rle data and metadata in videos / clips:')
+    for video_name, val in misalignment_dict.items():
+        print(video_name, end=": ")  # Print video name followed by a colon
+        print(", ".join(str(clip_id) for clip_id in val.keys()))
 
     # Save to JSON with safe conversion
     def convert_np(obj):
@@ -188,6 +198,6 @@ def main(base_dir, csv_path, output_json, test=False):
 # Example usage
 if __name__ == "__main__":
     base_dir = "/home/cortica/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
-    csv_path = '/home/cortica/Documents/Adam/Experiments/Mask2Former/train_split.csv'
-    output_json = "/home/cortica/Documents/Adam/Experiments/Mask2Former/train_split.json"
-    main(base_dir, csv_path, output_json, test=False)
+    csv_path = '/home/cortica/Documents/Adam/Experiments/Mask2Former/test_split.csv'
+    output_json = "/home/cortica/Documents/Adam/Experiments/Mask2Former/test_split.json"
+    main(base_dir, csv_path, output_json, test=True)

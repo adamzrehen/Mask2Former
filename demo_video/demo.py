@@ -252,8 +252,9 @@ if __name__ == "__main__":
                         # Handle predictions when they are available
                         overlap = 0
                         if obj_label in prediction_masks:
-                            pred_mask = prediction_masks[obj_label][mask_id]
-                            overlap = check_overlap(mask, pred_mask)
+                            if mask_id in prediction_masks[obj_label]:
+                                pred_mask = prediction_masks[obj_label][mask_id]
+                                overlap = check_overlap(mask, pred_mask)
 
                         if mask is not None and mask.sum() > 0 and overlap:
                             inference[obj_label]['detections'] += 1

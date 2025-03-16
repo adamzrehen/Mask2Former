@@ -83,7 +83,7 @@ def convert_to_df(data):
                     'Detections': metrics['detections'] if 'detections' in metrics else 0,
                     'Misdetections': metrics['misdetections'] if 'misdetections' in metrics else 0,
                     'False Alarms': metrics['false_alarms'] if 'false_alarms' in metrics else 0,
-                    'OK Images': metrics['ok'],
+                    'OK Images': metrics['ok'] if 'ok' in metrics else 0,
                     'Processed': metrics['processed']
                 }
                 rows.append(row)
@@ -185,7 +185,7 @@ def run(args):
                         # Handle predictions when they are available
                         overlap = 0
                         if obj_label in prediction_masks:
-                            if mask_id in prediction_masks[obj_label]:
+                            if mask_id < len(prediction_masks[obj_label]):
                                 pred_mask = prediction_masks[obj_label][mask_id]
                                 overlap = check_overlap(mask, pred_mask)
 

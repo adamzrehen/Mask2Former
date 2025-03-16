@@ -250,17 +250,18 @@ if __name__ == "__main__":
                                                     'ok': 0, 'processed': 0}
 
                         # Handle predictions when they are available
+                        overlap = 0
                         if obj_label in prediction_masks:
                             pred_mask = prediction_masks[obj_label][mask_id]
                             overlap = check_overlap(mask, pred_mask)
 
-                            if mask is not None and mask.sum() > 0 and overlap:
-                                inference[obj_label]['detections'] += 1
-                                prediction = True
-                                ok_image = False
-                            elif mask is not None and mask.sum() > 0 and not overlap:
-                                inference[obj_label]['misdetections'] += 1
-                                ok_image = False
+                        if mask is not None and mask.sum() > 0 and overlap:
+                            inference[obj_label]['detections'] += 1
+                            prediction = True
+                            ok_image = False
+                        elif mask is not None and mask.sum() > 0 and not overlap:
+                            inference[obj_label]['misdetections'] += 1
+                            ok_image = False
                         inference[obj_label]['processed'] += 1
                 # Compute FAs
                 for obj_label, prediction_mask in prediction_masks.items():

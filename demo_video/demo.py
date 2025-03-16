@@ -22,7 +22,7 @@ import json
 import cv2
 import numpy as np
 import tqdm
-
+import pandas as pd
 from torch.cuda.amp import autocast
 
 from detectron2.config import get_cfg
@@ -60,6 +60,37 @@ def rle_decode_mask(rle_dict):
     return stacked_masks
 
 
+def check_overlap(mask, prediction, min_overlap=50):
+    mask = mask.astype(bool)
+    prediction = prediction.astype(bool)
+    overlap = np.sum(mask & prediction)
+    if overlap >= min_overlap:
+        return True
+    return False
+
+def convert_to_df(data):
+    rows = []
+
+    # Iterate over the dictionary and extract information
+    for video_name, clips in data.items():
+        for clip_id, objects in clips.items():
+            for object_id, metrics in objects.items():
+                row = {
+                    'Video Name': video_name,
+                    'Clip ID': clip_id,
+                    'Object ID': object_id,
+                    'Detections': metrics['detections'],
+                    'Misdetections': metrics['misdetections'],
+                    'False Alarms': metrics['false_alarms'],
+                    'Processed': metrics['processed']
+                }
+                rows.append(row)
+
+    # Create the DataFrame
+    df = pd.DataFrame(rows)
+    return df
+
+
 def get_parser():
     parser = argparse.ArgumentParser(description="maskformer2 demo for builtin configs")
     parser.add_argument(
@@ -81,6 +112,13 @@ def get_parser():
         help="A file or directory to save output visualizations. "
         "If not given, will show output in an OpenCV window.",
     )
+
+    parser.add_argument(
+        "--inference_output",
+        help="A file or directory to save output visualizations. "
+        "If not given, will show output in an OpenCV window.",
+    )
+
 
     parser.add_argument(
         "--video_filename",
@@ -145,6 +183,8 @@ if __name__ == "__main__":
 
     demo = VisualizationDemo(cfg)
 
+    inference_statistics = {}
+
     if args.output:
         os.makedirs(args.output, exist_ok=True)
 
@@ -169,6 +209,8 @@ if __name__ == "__main__":
                     mask = rle_decode_mask(rle_data)
                 masks.append(mask)
 
+        video_name = Path(path).parents[2].name
+        clip = int(clip_folder[5:])
         start_time = time.time()
         chunk_size = 30
         predictions_list = []
@@ -184,8 +226,38 @@ if __name__ == "__main__":
                     len(predictions["pred_scores"]), time.time() - start_time
                 )
             )
+        # Get statistics
+        if args.inference_output:
+            mask_id = 0
+            inference =  {}
+            for predictions in predictions_list:
+                for k, obj_label in enumerate(predictions['pred_labels']):
+                    if obj_label not in inference:
+                        inference[obj_label] = {'misdetections': 0, 'detections': 0, 'false_alarms': 0, 'processed': 0}
+                    for pred_mask in predictions['pred_masks'][k]:
+                        mask =  None
+                        if masks[mask_id]:
+                            mask = masks[mask_id][obj_label]
+                            overlap = check_overlap(mask, pred_mask.cpu().detach().numpy())
+                        if mask is not None and mask.sum() > 0 and overlap:
+                            inference[obj_label]['detections'] +=1
+                        if mask is not None and mask.sum() > 0 and not overlap:
+                            inference[obj_label]['misdetections'] += 1
+                        if (mask is None or not mask.sum()) and overlap:
+                            inference[obj_label]['false_alarms'] += 0
+                        inference[obj_label]['processed'] += 1
+                        mask_id += 1
+
+            inference_statistics[video_name] = {clip: inference}
+            new_df = convert_to_df(inference_statistics)
+            if os.path.exists(os.path.join(args.inference_output, 'inference.csv')):
+                existing_df = pd.read_csv(os.path.join(args.inference_output, 'inference.csv'))
+                new_df = existing_df.append(new_df, ignore_index=True)
+            new_df.to_csv(os.path.join(args.inference_output, 'inference.csv'), index=False)
+
         predictions = [item for sublist in predictions_list for item in sublist]
         visualized_output = [item for sublist in visualized_output_list for item in sublist]
+
         if args.output:
             if args.save_frames:
                 for path, _vis_output in zip(args.input, visualized_output):

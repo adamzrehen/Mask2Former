@@ -5,7 +5,7 @@ import tqdm
 from pathlib import Path
 from datetime import datetime
 
-def main(csv_file, output_path, config_file, base_dir):
+def main(csv_file, output_path, config_file, base_dir, inference_output):
 
     df = pd.read_csv(csv_file)
     grouped_videos = df.groupby(['video_name', 'clip_id'])
@@ -27,6 +27,7 @@ def main(csv_file, output_path, config_file, base_dir):
             f"--output={output_path}",
             f"--video_filename={file_name}",
             f"--overlay_masks=True"
+            f"--inference_output={inference_output}"
         ]
 
         try:
@@ -44,10 +45,10 @@ if __name__ == "__main__":
     parser.add_argument("--output_path", required=True, help="Base directory for output results.")
     parser.add_argument("--config_file", required=True, help="Path to the configuration file.")
     parser.add_argument("--base_dir", required=True, help="Base directory for input video frames.")
-
+    parser.add_argument("--inference_output", required=True, help="Output directory for inference stats.")
     args = parser.parse_args()
 
-    main(args.csv_file, args.output_path, args.config_file, args.base_dir)
+    main(args.csv_file, args.output_path, args.config_file, args.base_dir, args.inference_output)
 
 
     # --csv_file="/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train_split.csv"

@@ -250,7 +250,7 @@ if __name__ == "__main__":
             new_df = convert_to_df(inference_statistics)
             if os.path.exists(os.path.join(args.inference_output, 'inference.csv')):
                 existing_df = pd.read_csv(os.path.join(args.inference_output, 'inference.csv'))
-                new_df = existing_df.append(new_df, ignore_index=True)
+                new_df = pd.concat([new_df, existing_df], ignore_index=True)
             new_df.to_csv(os.path.join(args.inference_output, 'inference.csv'), index=False)
 
         predictions = [item for sublist in predictions_list for item in sublist]

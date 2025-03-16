@@ -24,7 +24,7 @@ import numpy as np
 import tqdm
 import pandas as pd
 from torch.cuda.amp import autocast
-
+from collections import defaultdict
 from detectron2.config import get_cfg
 from detectron2.data.detection_utils import read_image
 from detectron2.projects.deeplab import add_deeplab_config
@@ -93,70 +93,6 @@ def convert_to_df(data):
     return df
 
 
-def get_parser():
-    parser = argparse.ArgumentParser(description="maskformer2 demo for builtin configs")
-    parser.add_argument(
-        "--config-file",
-        default="configs/youtubevis_2019/video_maskformer2_R50_bs16_8ep.yaml",
-        metavar="FILE",
-        help="path to config file",
-    )
-    parser.add_argument("--video-input", help="Path to video file.")
-    parser.add_argument(
-        "--input",
-        nargs="+",
-        help="A list of space separated input images; "
-        "or a single glob pattern such as 'directory/*.jpg'"
-        "this will be treated as frames of a video",
-    )
-    parser.add_argument(
-        "--output",
-        help="A file or directory to save output visualizations. "
-        "If not given, will show output in an OpenCV window.",
-    )
-
-    parser.add_argument(
-        "--inference_output",
-        help="A file or directory to save output visualizations. "
-        "If not given, will show output in an OpenCV window.",
-    )
-
-
-    parser.add_argument(
-        "--video_filename",
-        help="Name of output video",
-        default="visualization"
-    )
-
-    parser.add_argument(
-        "--save-frames",
-        default=False,
-        help="Save frame level image outputs.",
-    )
-
-    parser.add_argument(
-        "--confidence-threshold",
-        type=float,
-        default=0.5,
-        help="Minimum score for instance predictions to be shown",
-    )
-    parser.add_argument(
-        "--opts",
-        help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=[],
-        nargs=argparse.REMAINDER,
-    )
-    parser.add_argument(
-        "--overlay_masks",
-        type=bool,
-        default=False,
-        help="A file or directory to save output visualizations. "
-        "If not given, will show output in an OpenCV window.",
-    )
-
-    return parser
-
-
 def test_opencv_video_format(codec, file_ext):
     with tempfile.TemporaryDirectory(prefix="video_format_test") as dir:
         filename = os.path.join(dir, "test_file" + file_ext)
@@ -174,9 +110,8 @@ def test_opencv_video_format(codec, file_ext):
         return False
 
 
-if __name__ == "__main__":
+def run(args):
     mp.set_start_method("spawn", force=True)
-    args = get_parser().parse_args()
     setup_logger(name="fvcore")
     logger = setup_logger()
     logger.info("Arguments: " + str(args))
@@ -231,14 +166,12 @@ if __name__ == "__main__":
             mask_id = 0
             inference = {}
 
-            prediction_masks = {}
+            prediction_masks = defaultdict(list)
             for prediction in predictions_list:
-                for pred_label in prediction['pred_labels']:
-                    pred_list = [i for i in prediction['pred_masks'][pred_label].cpu().detach().numpy()]
-                    if not pred_label in prediction_masks:
-                        prediction_masks = {pred_label: pred_list}
-                    else:
-                        prediction_masks[pred_label].extend(pred_list)
+                for k, pred_label in enumerate(prediction['pred_labels']):
+                    pred_list = [i for i in prediction['pred_masks'][k].cpu().detach().numpy()]
+                    prediction_masks[pred_label].extend(pred_list)
+
 
             for mask_id, masks_dict in enumerate(masks):
                 ok_image = True
@@ -269,6 +202,7 @@ if __name__ == "__main__":
                     pred_mask = prediction_mask[mask_id]
                     if pred_mask.sum() and (masks_dict is None or obj_label not in masks_dict or
                                             masks_dict[obj_label].sum() == 0):
+                        inference[-1] = inference.get(-1, {'false_alarms': 0, 'processed': 0})
                         inference[obj_label]['false_alarms'] += 1
                         inference[obj_label]['processed'] += 1
                         prediction = True
@@ -311,7 +245,7 @@ if __name__ == "__main__":
 
     elif args.video_input:
         video = cv2.VideoCapture(args.video_input)
-        
+
         vid_frames = []
         while video.isOpened():
             success, frame = video.read()
@@ -345,3 +279,32 @@ if __name__ == "__main__":
                 out.write(frame)
             cap.release()
             out.release()
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description="maskformer2 demo for builtin configs")
+    parser.add_argument("--config-file", default="configs/youtubevis_2019/video_maskformer2_R50_bs16_8ep.yaml",
+                        metavar="FILE", help="path to config file")
+    parser.add_argument("--video-input", help="Path to video file.")
+    parser.add_argument("--input", nargs="+", help="A list of space separated input images; "
+                                                   "or a single glob pattern such as 'directory/*.jpg' "
+                                                   "this will be treated as frames of a video")
+    parser.add_argument("--output", help="A file or directory to save output visualizations. If not given, "
+                                         "will show output in an OpenCV window.")
+    parser.add_argument("--inference_output", help="A file or directory to save output visualizations. If "
+                                                   "not given, will show output in an OpenCV window.")
+    parser.add_argument("--video_filename",help="Name of output video", default="visualization")
+    parser.add_argument("--save-frames", default=False, help="Save frame level image outputs.")
+    parser.add_argument("--confidence-threshold", type=float, default=0.5,
+                        help="Minimum score for instance predictions to be shown")
+    parser.add_argument("--opts", help="Modify config options using the command-line 'KEY VALUE' pairs",
+                        default=[], nargs=argparse.REMAINDER)
+    parser.add_argument("--overlay_masks", type=bool, default=False,
+                        help="A file or directory to save output visualizations. If not given, will show output in "
+                             "an OpenCV window.")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    args = get_args()
+    run(args)

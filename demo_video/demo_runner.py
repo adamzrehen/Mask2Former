@@ -4,6 +4,15 @@ import os
 import tqdm
 from pathlib import Path
 from datetime import datetime
+from demo import run
+
+
+class Namespace:
+    def __init__(self, **kwargs):
+        # Initialize the class with any keyword arguments
+        self.__dict__.update(kwargs)
+
+
 
 def main(csv_file, output_path, config_file, base_dir, inference_output, save_visualizations):
 
@@ -16,23 +25,25 @@ def main(csv_file, output_path, config_file, base_dir, inference_output, save_vi
     for group in tqdm.tqdm(grouped_videos):
         file_name = group[0][0] + '_clip_' + str(group[0][1])
         output_path = os.path.join(output_dir, file_name)
-        input_path = os.path.join(base_dir, Path(group[1]['relative_image_path'].iloc[0]).parent,
-                                  '*' + Path(group[1]['relative_image_path'].iloc[0]).suffix)
+        input_path = [os.path.join(Path(group[1]['relative_image_path'].iloc[0]).parent, _)
+                      for _ in os.listdir(Path(group[1]['relative_image_path'].iloc[0]).parent)]
+        config = {
+            'config_file': config_file,
+            'input': input_path,
+            'output': output_path if save_visualizations else '',
+            'video_filename': file_name,
+            'overlay_masks': True,
+            'inference_output': inference_output,
+            'opts': []
+        }
 
-        # Command to execute demo.py
-        command = [
-            "python", "demo.py",
-            f"--config-file={config_file}",
-            f"--input={input_path}",
-            f"--output={output_path if save_visualizations else ''}",
-            f"--video_filename={file_name}",
-            f"--overlay_masks=True",
-            f"--inference_output={inference_output}"
-        ]
+        args = Namespace()
+        for key, value in config.items():
+            setattr(args, key, value)
 
         try:
             # Run the command
-            subprocess.run(command, check=True)
+            run(args)
             print(f"demo.py executed successfully for {file_name}.")
         except subprocess.CalledProcessError as e:
             print(f"An error occurred while executing demo.py for {file_name}: {e}")

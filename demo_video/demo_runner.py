@@ -5,7 +5,7 @@ import tqdm
 from pathlib import Path
 from datetime import datetime
 
-def main(csv_file, output_path, config_file, base_dir, inference_output):
+def main(csv_file, output_path, config_file, base_dir, inference_output, save_visualizations):
 
     df = pd.read_csv(csv_file)
     grouped_videos = df.groupby(['video_name', 'clip_id'])
@@ -24,9 +24,9 @@ def main(csv_file, output_path, config_file, base_dir, inference_output):
             "python", "demo.py",
             f"--config-file={config_file}",
             f"--input={input_path}",
-            f"--output={output_path}",
+            f"--output={output_path if save_visualizations else ''}",
             f"--video_filename={file_name}",
-            f"--overlay_masks=True"
+            f"--overlay_masks=True",
             f"--inference_output={inference_output}"
         ]
 
@@ -40,15 +40,17 @@ def main(csv_file, output_path, config_file, base_dir, inference_output):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Run demo.py on grouped video data.")
-    parser.add_argument("--csv_file", required=True, help="Path to the CSV file containing video data.")
-    parser.add_argument("--output_path", required=True, help="Base directory for output results.")
-    parser.add_argument("--config_file", required=True, help="Path to the configuration file.")
-    parser.add_argument("--base_dir", required=True, help="Base directory for input video frames.")
-    parser.add_argument("--inference_output", required=True, help="Output directory for inference stats.")
+    parser = argparse.ArgumentParser(description="Run demo.py on grouped video data")
+    parser.add_argument("--csv_file", required=True, help="Path to the CSV file containing video data")
+    parser.add_argument("--output_path", required=True, help="Base directory for output results")
+    parser.add_argument("--config_file", required=True, help="Path to the configuration file")
+    parser.add_argument("--base_dir", required=True, help="Base directory for input video frames")
+    parser.add_argument("--inference_output", required=False, default='',
+                        help="Output directory for inference stats")
+    parser.add_argument("--save_visualizations", required=False, default=False, help="Save visualizations")
     args = parser.parse_args()
 
-    main(args.csv_file, args.output_path, args.config_file, args.base_dir, args.inference_output)
+    main(args.csv_file, args.output_path, args.config_file, args.base_dir, args.inference_output, args.save_visualizations)
 
 
     # --csv_file="/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train_split.csv"

@@ -227,24 +227,44 @@ if __name__ == "__main__":
         # Get statistics
         if args.inference_output:
             mask_id = 0
-            inference =  {}
-            for predictions in predictions_list:
-                for k, obj_label in enumerate(predictions['pred_labels']):
-                    if obj_label not in inference:
-                        inference[obj_label] = {'misdetections': 0, 'detections': 0, 'false_alarms': 0, 'processed': 0}
-                    for pred_mask in predictions['pred_masks'][k]:
-                        mask =  None
-                        if masks[mask_id]:
-                            mask = masks[mask_id][obj_label]
-                            overlap = check_overlap(mask, pred_mask.cpu().detach().numpy())
-                        if mask is not None and mask.sum() > 0 and overlap:
-                            inference[obj_label]['detections'] +=1
-                        if mask is not None and mask.sum() > 0 and not overlap:
-                            inference[obj_label]['misdetections'] += 1
-                        if (mask is None or not mask.sum()) and overlap:
-                            inference[obj_label]['false_alarms'] += 0
-                        inference[obj_label]['processed'] += 1
-                        mask_id += 1
+            inference = {}
+
+            prediction_masks = {}
+            for prediction in predictions_list:
+                for pred_label in prediction['pred_labels']:
+                    pred_list = [i for i in prediction['pred_masks'][pred_label].cpu().detach().numpy()]
+                    if not pred_label in prediction_masks:
+                        prediction_masks = {pred_label: pred_list}
+                    else:
+                        prediction_masks[pred_label].extend(pred_list)
+
+            for mask_id, masks_dict in enumerate(masks):
+                if masks_dict is not None:
+                    for obj_label, mask in masks_dict.items():  # Iterate through each object label and its mask
+                        if obj_label not in inference:
+                            inference[obj_label] = {'misdetections': 0, 'detections': 0, 'false_alarms': 0,
+                                                    'ok': 0, 'processed': 0}
+
+                        # Handle predictions when they are available
+                        if obj_label in prediction_masks:
+                            pred_mask = prediction_masks[obj_label][mask_id]
+                            overlap = check_overlap(mask, pred_mask)
+
+                            if mask is not None and mask.sum() > 0 and overlap:
+                                inference[obj_label]['detections'] += 1
+                            elif mask is not None and mask.sum() > 0 and not overlap:
+                                inference[obj_label]['misdetections'] += 1
+                # Compute FAs
+                for obj_label, prediction_mask in prediction_masks.items():
+                    pred_mask = prediction_mask[mask_id]
+                    if pred_mask.sum() and (masks_dict is None or obj_label not in masks_dict or
+                                            masks_dict[obj_label].sum() == 0):
+                        inference[obj_label]['false_alarms'] += 1
+                    elif pred_mask.sum == 0 and (masks_dict is None or obj_label not in masks_dict or
+                                                 masks_dict[obj_label].sum() == 0):
+                        inference[obj_label]['ok'] += 1
+
+                inference[obj_label]['processed'] += 1
 
             inference_statistics[video_name] = {clip: inference}
             new_df = convert_to_df(inference_statistics)

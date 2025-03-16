@@ -180,11 +180,8 @@ if __name__ == "__main__":
     logger.info("Arguments: " + str(args))
 
     cfg = setup_cfg(args)
-
     demo = VisualizationDemo(cfg)
-
     inference_statistics = {}
-
     if args.output:
         os.makedirs(args.output, exist_ok=True)
 

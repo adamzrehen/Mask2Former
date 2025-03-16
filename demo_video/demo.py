@@ -199,13 +199,14 @@ def run(args):
                         inference[obj_label]['processed'] += 1
                 # Compute FAs
                 for obj_label, prediction_mask in prediction_masks.items():
-                    pred_mask = prediction_mask[mask_id]
-                    if pred_mask.sum() and (masks_dict is None or obj_label not in masks_dict or
-                                            masks_dict[obj_label].sum() == 0):
-                        inference[-1] = inference.get(-1, {'false_alarms': 0, 'processed': 0})
-                        inference[obj_label]['false_alarms'] += 1
-                        inference[obj_label]['processed'] += 1
-                        prediction = True
+                    if mask_id < len(prediction_mask):
+                        pred_mask = prediction_mask[mask_id]
+                        if pred_mask.sum() and (masks_dict is None or obj_label not in masks_dict or
+                                                masks_dict[obj_label].sum() == 0):
+                            inference[obj_label] = inference.get(obj_label, {'false_alarms': 0, 'processed': 0})
+                            inference[obj_label]['false_alarms'] += 1
+                            inference[obj_label]['processed'] += 1
+                            prediction = True
                 if not prediction and ok_image:
                     inference[-1] = inference.get(-1, {'ok': 0, 'processed': 0})
                     inference[-1]['ok'] += 1

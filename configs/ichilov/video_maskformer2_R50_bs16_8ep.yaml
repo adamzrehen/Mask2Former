@@ -1,7 +1,7 @@
 _BASE_: Base-ichilov-VideoInstanceSegmentation.yaml
 MODEL:
-#  WEIGHTS: "/home/adam/PycharmProjects/Mask2Former/models/model_final_34112b.pkl"
-  WEIGHTS: "/home/adam/PycharmProjects/Mask2Former/output/model_final.pth"
+#  WEIGHTS: "/home/cortica/PycharmProjects/Mask2Former/models/model_final_34112b.pkl"
+  WEIGHTS: "/home/cortica/PycharmProjects/Mask2Former/output/model_final.pth"
   META_ARCHITECTURE: "VideoMaskFormer"
   SEM_SEG_HEAD:
     NAME: "MaskFormerHead"
@@ -44,3 +44,4 @@ MODEL:
       PANOPTIC_ON: False
       OVERLAP_THRESHOLD: 0.8
       OBJECT_MASK_THRESHOLD: 0.8
+CLEARML: False

@@ -137,12 +137,13 @@ class VideoMaskFormer(nn.Module):
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         # Initialize clearml task with timestamp in task name
-        task = Task.init(
-            project_name="Mask2Former",
-            task_name=f"Sample_{timestamp}",
-            task_type=Task.TaskTypes.training,  # Optional, can also be TaskTypes.testing, etc.
-        )
-        task.connect(cfg)
+        if cfg.get('CLEARML', None):
+            task = Task.init(
+                project_name="Mask2Former",
+                task_name=f"Sample_{timestamp}",
+                task_type=Task.TaskTypes.training,  # Optional, can also be TaskTypes.testing, etc.
+            )
+            task.connect(cfg)
 
         return {
             "backbone": backbone,

@@ -43,6 +43,7 @@ WINDOW_NAME = "mask2former video demo"
 def setup_cfg(args):
     # load config from file and command-line arguments
     cfg = get_cfg()
+    cfg.set_new_allowed(True)
     add_deeplab_config(cfg)
     add_maskformer2_config(cfg)
     add_maskformer2_video_config(cfg)

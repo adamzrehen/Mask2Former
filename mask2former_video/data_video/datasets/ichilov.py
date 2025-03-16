@@ -21,11 +21,11 @@ __all__ = ["load_ytvis_json", "register_ichilov_instances"]
 
 cmap = plt.get_cmap("tab10")
 ICIHLOV_CATEGORIES = [
-    {"color": [31, 119, 180], "isthing": 1, "id": 1, "name": "Adenoma"},
-    {"color": [255, 127, 14], "isthing": 1, "id": 2, "name": "SCC"},
-    {"color": tuple(int(c * 255) for c in cmap(2)[:3]), "isthing": 1, "id": 3, "name": "Adenocarcinoma"},
-    {"color": tuple(int(c * 255) for c in cmap(3)[:3]), "isthing": 1, "id": 4, "name": "Normal Tissue"},
-    {"color": tuple(int(c * 255) for c in cmap(4)[:3]), "isthing": 1, "id": 5, "name": "Other"},
+    {"color": [31, 119, 180], "isthing": 1, "id": 1, "name": "adenoma"},
+    {"color": [255, 127, 14], "isthing": 1, "id": 2, "name": "scc"},
+    {"color": tuple(int(c * 255) for c in cmap(2)[:3]), "isthing": 1, "id": 3, "name": "adenocarcinoma"},
+    {"color": tuple(int(c * 255) for c in cmap(3)[:3]), "isthing": 1, "id": 4, "name": "normal_tissue"},
+    {"color": tuple(int(c * 255) for c in cmap(4)[:3]), "isthing": 1, "id": 5, "name": "other"},
 ]
 
 

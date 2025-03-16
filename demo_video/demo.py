@@ -210,6 +210,7 @@ if __name__ == "__main__":
 
         video_name = Path(path).parents[2].name
         clip = int(clip_folder[5:])
+        print(f'Processing: {video_name} clip {clip}')
         start_time = time.time()
         chunk_size = 30
         predictions_list = []
@@ -260,18 +261,19 @@ if __name__ == "__main__":
                             elif mask is not None and mask.sum() > 0 and not overlap:
                                 inference[obj_label]['misdetections'] += 1
                                 ok_image = False
+                        inference[obj_label]['processed'] += 1
                 # Compute FAs
                 for obj_label, prediction_mask in prediction_masks.items():
                     pred_mask = prediction_mask[mask_id]
                     if pred_mask.sum() and (masks_dict is None or obj_label not in masks_dict or
                                             masks_dict[obj_label].sum() == 0):
                         inference[obj_label]['false_alarms'] += 1
+                        inference[obj_label]['processed'] += 1
                         prediction = True
                 if not prediction and ok_image:
-                    inference[-1] = inference.get(-1, {'ok': 0})
+                    inference[-1] = inference.get(-1, {'ok': 0, 'processed': 0})
                     inference[-1]['ok'] += 1
-
-                inference[obj_label]['processed'] += 1
+                    inference[-1]['processed'] += 1
 
             inference_statistics[video_name] = {clip: inference}
             new_df = convert_to_df(inference_statistics)

@@ -80,9 +80,10 @@ def convert_to_df(data):
                     'Video Name': video_name,
                     'Clip ID': clip_id,
                     'Object ID': object_id,
-                    'Detections': metrics['detections'],
-                    'Misdetections': metrics['misdetections'],
-                    'False Alarms': metrics['false_alarms'],
+                    'Detections': metrics['detections'] if 'detections' in metrics else 0,
+                    'Misdetections': metrics['misdetections'] if 'misdetections' in metrics else 0,
+                    'False Alarms': metrics['false_alarms'] if 'false_alarms' in metrics else 0,
+                    'OK Images': metrics['ok'],
                     'Processed': metrics['processed']
                 }
                 rows.append(row)
@@ -239,6 +240,8 @@ if __name__ == "__main__":
                         prediction_masks[pred_label].extend(pred_list)
 
             for mask_id, masks_dict in enumerate(masks):
+                ok_image = True
+                prediction = False
                 if masks_dict is not None:
                     for obj_label, mask in masks_dict.items():  # Iterate through each object label and its mask
                         if obj_label not in inference:
@@ -252,17 +255,21 @@ if __name__ == "__main__":
 
                             if mask is not None and mask.sum() > 0 and overlap:
                                 inference[obj_label]['detections'] += 1
+                                prediction = True
+                                ok_image = False
                             elif mask is not None and mask.sum() > 0 and not overlap:
                                 inference[obj_label]['misdetections'] += 1
+                                ok_image = False
                 # Compute FAs
                 for obj_label, prediction_mask in prediction_masks.items():
                     pred_mask = prediction_mask[mask_id]
                     if pred_mask.sum() and (masks_dict is None or obj_label not in masks_dict or
                                             masks_dict[obj_label].sum() == 0):
                         inference[obj_label]['false_alarms'] += 1
-                    elif pred_mask.sum == 0 and (masks_dict is None or obj_label not in masks_dict or
-                                                 masks_dict[obj_label].sum() == 0):
-                        inference[obj_label]['ok'] += 1
+                        prediction = True
+                if not prediction and ok_image:
+                    inference[-1] = inference.get(-1, {'ok': 0})
+                    inference[-1]['ok'] += 1
 
                 inference[obj_label]['processed'] += 1
 

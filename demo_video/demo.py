@@ -193,10 +193,11 @@ def run(args):
                             inference[obj_label]['detections'] += 1
                             prediction = True
                             ok_image = False
+                            inference[obj_label]['processed'] += 1
                         elif mask is not None and mask.sum() > 0 and not overlap:
                             inference[obj_label]['misdetections'] += 1
                             ok_image = False
-                        inference[obj_label]['processed'] += 1
+                            inference[obj_label]['processed'] += 1
                 # Compute FAs
                 for obj_label, prediction_mask in prediction_masks.items():
                     if mask_id < len(prediction_mask):

@@ -37,6 +37,7 @@ def compute_detection_statistics(masks, prediction_masks, ignore_prediction_labe
                     ok_image = False
                     inference[obj_label]['processed'] += 1
         # Compute FAs
+        false_alarm = False
         for key, prediction_mask in prediction_masks.items():
             overlap = 0
             if mask_id < len(prediction_mask):
@@ -45,10 +46,12 @@ def compute_detection_statistics(masks, prediction_masks, ignore_prediction_labe
                     for obj_label, mask in masks_dict.items():
                         overlap += check_overlap(mask, pred_mask)
                 if overlap == 0 and pred_mask.sum():
-                    inference[-1] = inference.get(-1, {'ok': 0, 'false_alarms': 0, 'processed': 0})
-                    inference[-1]['false_alarms'] += 1
-                    inference[-1]['processed'] += 1
-                    prediction = True
+                    false_alarm = True
+        if false_alarm:
+            prediction = True
+            inference[-1] = inference.get(-1, {'ok': 0, 'false_alarms': 0, 'processed': 0})
+            inference[-1]['false_alarms'] += 1
+            inference[-1]['processed'] += 1
         if not prediction and ok_image:
             inference[-1] = inference.get(-1, {'ok': 0, 'false_alarms': 0, 'processed': 0})
             inference[-1]['ok'] += 1

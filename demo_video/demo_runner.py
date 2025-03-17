@@ -4,7 +4,7 @@ import os
 import tqdm
 from pathlib import Path
 from datetime import datetime
-from demo import evaluate
+from demo import Evaluation
 
 
 class Namespace:
@@ -14,13 +14,15 @@ class Namespace:
 
 
 
-def main(csv_file, output_path, config_file, base_dir, inference_output, save_visualizations):
+def main(csv_file, output_path, config_file, base_dir, inference_output, save_visualizations,
+         load_predictions):
 
     df = pd.read_csv(csv_file)
     grouped_videos = df.groupby(['video_name', 'clip_id'])
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.join(output_path, timestamp)
     os.mkdir(output_dir)
+    evaluation_obj = None
 
     for group in tqdm.tqdm(grouped_videos):
         file_name = group[0][0] + '_clip_' + str(group[0][1])
@@ -35,7 +37,7 @@ def main(csv_file, output_path, config_file, base_dir, inference_output, save_vi
             'overlay_masks': True,
             'inference_output': inference_output,
             'opts': [],
-            'load_predictions': False,
+            'load_predictions': load_predictions,
         }
 
         args = Namespace()
@@ -44,7 +46,10 @@ def main(csv_file, output_path, config_file, base_dir, inference_output, save_vi
 
         try:
             # Run the command
-            evaluate(args)
+            if not evaluation_obj:
+                evaluation_obj = Evaluation(args)
+            evaluation_obj.args = args
+            evaluation_obj.evaluate()
             print(f"demo.py executed successfully for {file_name}.")
         except subprocess.CalledProcessError as e:
             print(f"An error occurred while executing demo.py for {file_name}: {e}")
@@ -60,9 +65,11 @@ if __name__ == "__main__":
     parser.add_argument("--inference_output", required=False, default='',
                         help="Output directory for inference stats")
     parser.add_argument("--save_visualizations", required=False, default=False, help="Save visualizations")
+    parser.add_argument("--load_predictions", default=False, help="Load saved predictions")
     args = parser.parse_args()
 
-    main(args.csv_file, args.output_path, args.config_file, args.base_dir, args.inference_output, args.save_visualizations)
+    main(args.csv_file, args.output_path, args.config_file, args.base_dir, args.inference_output, args.save_visualizations,
+         args.load_predictions)
 
 
     # --csv_file="/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train_split.csv"

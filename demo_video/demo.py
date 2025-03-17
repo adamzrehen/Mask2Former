@@ -16,7 +16,6 @@ import pickle
 import re
 import json
 import cv2
-import numpy as np
 import pandas as pd
 from torch.cuda.amp import autocast
 from collections import defaultdict
@@ -72,30 +71,59 @@ def convert_to_df(data):
     return df
 
 
-def evaluate(args):
-    mp.set_start_method("spawn", force=True)
-    setup_logger(name="fvcore")
-    logger = setup_logger()
-    logger.info("Arguments: " + str(args))
+class Evaluation:
+    def __init__(self, args):
+        """
+        Initialize the evaluation with arguments.
+        """
+        self.args = args
+        # Set the multiprocessing start method
+        mp.set_start_method("spawn", force=True)
 
-    cfg = setup_cfg(args)
-    demo = VisualizationDemo(cfg)
-    inference_statistics = {}
-    if args.output:
-        os.makedirs(args.output, exist_ok=True)
+        # Setup logger and configuration
+        self.logger = setup_logger(name="fvcore")
+        self.logger.info("Arguments: " + str(args))
+        self.cfg = setup_cfg(args)
+        self.demo = VisualizationDemo(self.cfg)
 
-    if args.input:
-        if len(args.input) == 1:
-            args.input = glob.glob(os.path.expanduser(args.input[0]))
-            assert args.input, "The input path(s) was not found"
+        # For storing inference statistics
+        self.inference_statistics = {}
 
+        # Create output directory if specified
+        if self.args.output:
+            os.makedirs(self.args.output, exist_ok=True)
+
+    def evaluate(self):
+        """
+        Run evaluation based on the input type.
+        """
+        if self.args.input:
+            self._evaluate_images()
+        elif self.args.video_input:
+            self._evaluate_video()
+
+    def _evaluate_images(self):
+        """
+        Process a list of image inputs.
+        """
         vid_frames = []
         masks = []
-        sorted_paths = sorted(args.input, key=lambda s: int(re.search(r'(\d+)\.(png|jpg)$', s).group(1)))
+
+        # Expand the input path if only one argument is provided
+        if len(self.args.input) == 1:
+            self.args.input = glob.glob(os.path.expanduser(self.args.input[0]))
+            assert self.args.input, "The input path(s) was not found"
+
+        # Sort the image paths based on the numeric part in the filename
+        sorted_paths = sorted(
+            self.args.input,
+            key=lambda s: int(re.search(r'(\d+)\.(png|jpg)$', s).group(1))
+        )
         for path in sorted_paths:
-            img = read_image(path, format="BGR")
-            vid_frames.append(img)
-            if args.overlay_masks:
+            if not self.args.load_predictions:
+                img = read_image(path, format="BGR")
+                vid_frames.append(img)
+            if self.args.overlay_masks:
                 clip_folder = Path(path).parent.stem
                 mask_path = Path(path).parents[2] / 'output_masks' / clip_folder / (Path(path).stem + '.json')
                 mask = None
@@ -105,12 +133,14 @@ def evaluate(args):
                     mask = rle_decode_mask(rle_data)
                 masks.append(mask)
 
+        # Derive video name and clip number from the last path processed
         video_name = Path(path).parents[2].name
         clip = int(clip_folder[5:])
         print(f'Processing: {video_name} clip {clip}')
 
-        if args.load_predictions:
-            predictions_dir = os.path.join(args.inference_output, 'predictions')
+        # Load predictions if already available; otherwise run inference
+        if self.args.load_predictions:
+            predictions_dir = os.path.join(self.args.inference_output, 'predictions')
             with open(os.path.join(predictions_dir, f'{video_name}_{clip}.pkl'), 'rb') as f:
                 prediction_masks = pickle.load(f)
         else:
@@ -118,64 +148,72 @@ def evaluate(args):
             chunk_size = 30
             predictions_list = []
             visualized_output_list = []
+            # Process images in chunks
             for i in range(0, len(vid_frames), chunk_size):
                 chunk = vid_frames[i:i + chunk_size]
                 with autocast():
-                    predictions, visualized_output = demo.run_on_video(chunk)
+                    predictions, visualized_output = self.demo.run_on_video(chunk)
                     predictions_list.append(predictions)
                     visualized_output_list.append(visualized_output)
-                logger.info(
+                self.logger.info(
                     "detected {} instances per frame in {:.2f}s".format(
-                        len(predictions["pred_scores"]), time.time() - start_time))
+                        len(predictions["pred_scores"]), time.time() - start_time
+                    )
+                )
+            # Combine predictions from all chunks
             prediction_masks = defaultdict(list)
             for prediction in predictions_list:
                 for k, pred_label in enumerate(prediction['pred_labels']):
                     pred_list = [i for i in prediction['pred_masks'][k].cpu().detach().numpy()]
                     prediction_masks[pred_label].extend(pred_list)
 
-            # Save predictions
-            predictions_dir = os.path.join(args.inference_output, 'predictions')
+            # Save the predictions for later use
+            predictions_dir = os.path.join(self.args.inference_output, 'predictions')
             os.makedirs(predictions_dir, exist_ok=True)
             with open(os.path.join(predictions_dir, f'{video_name}_{clip}.pkl'), 'wb') as f:
                 pickle.dump(prediction_masks, f)
 
-        # Get statistics
-        if args.inference_output:
+        # Compute and save inference statistics if an output folder is specified
+        if self.args.inference_output:
             inference = compute_detection_statistics(masks, prediction_masks)
-
-            inference_statistics[video_name] = {clip: inference}
-            new_df = convert_to_df(inference_statistics)
-            if os.path.exists(os.path.join(args.inference_output, 'inference.csv')):
-                existing_df = pd.read_csv(os.path.join(args.inference_output, 'inference.csv'))
+            self.inference_statistics[video_name] = {clip: inference}
+            new_df = convert_to_df(self.inference_statistics)
+            csv_path = os.path.join(self.args.inference_output, 'inference.csv')
+            if os.path.exists(csv_path):
+                existing_df = pd.read_csv(csv_path)
                 new_df = pd.concat([new_df, existing_df], ignore_index=True)
-            new_df.to_csv(os.path.join(args.inference_output, 'inference.csv'), index=False)
+            new_df.to_csv(csv_path, index=False)
 
-        if args.output:
+        # Save the visualized outputs if an output directory is provided
+        if self.args.output:
+            # Flatten the list of visualized outputs
             visualized_output = [item for sublist in visualized_output_list for item in sublist]
-            if args.save_frames:
-                for path, _vis_output in zip(args.input, visualized_output):
-                    out_filename = os.path.join(args.output, os.path.basename(path))
+            if self.args.save_frames:
+                for path, _vis_output in zip(self.args.input, visualized_output):
+                    out_filename = os.path.join(self.args.output, os.path.basename(path))
                     _vis_output.save(out_filename)
 
             H, W = visualized_output[0].height, visualized_output[0].width
 
             cap = cv2.VideoCapture(-1)
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            out = cv2.VideoWriter(os.path.join(args.output, args.video_filename + '.mp4'), fourcc, 10.0, (W, H), True)
+            video_path = os.path.join(self.args.output, self.args.video_filename + '.mp4')
+            out = cv2.VideoWriter(video_path, fourcc, 10.0, (W, H), True)
             for k, _vis_output in enumerate(visualized_output):
                 frame = _vis_output.get_image()[:, :, ::-1]
-                if args.overlay_masks:
-                    if masks[k] is not None:
-                        masked_frame = frame.copy()
-                        for obj_id, mask in masks[k].items():
-                            frame = show_mask(mask, image=masked_frame, obj_id=obj_id)
+                if self.args.overlay_masks and masks[k] is not None:
+                    masked_frame = frame.copy()
+                    for obj_id, mask in masks[k].items():
+                        frame = show_mask(mask, image=masked_frame, obj_id=obj_id)
                 out.write(frame)
             cap.release()
             out.release()
 
-    elif args.video_input:
-        video = cv2.VideoCapture(args.video_input)
-
+    def _evaluate_video(self):
+        """
+        Process a video input.
+        """
+        video = cv2.VideoCapture(self.args.video_input)
         vid_frames = []
         while video.isOpened():
             success, frame = video.read()
@@ -186,22 +224,24 @@ def evaluate(args):
 
         start_time = time.time()
         with autocast():
-            predictions, visualized_output = demo.run_on_video(vid_frames)
-        logger.info(
+            predictions, visualized_output = self.demo.run_on_video(vid_frames)
+        self.logger.info(
             "detected {} instances per frame in {:.2f}s".format(
-                len(predictions["pred_scores"]), time.time() - start_time))
+                len(predictions["pred_scores"]), time.time() - start_time
+            )
+        )
 
-        if args.output:
-            if args.save_frames:
+        if self.args.output:
+            if self.args.save_frames:
                 for idx, _vis_output in enumerate(visualized_output):
-                    out_filename = os.path.join(args.output, f"{idx}.jpg")
+                    out_filename = os.path.join(self.args.output, f"{idx}.jpg")
                     _vis_output.save(out_filename)
 
             H, W = visualized_output[0].height, visualized_output[0].width
-
             cap = cv2.VideoCapture(-1)
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            out = cv2.VideoWriter(os.path.join(args.output, "visualization.mp4"), fourcc, 10.0, (W, H), True)
+            video_path = os.path.join(self.args.output, "visualization.mp4")
+            out = cv2.VideoWriter(video_path, fourcc, 10.0, (W, H), True)
             for _vis_output in visualized_output:
                 frame = _vis_output.get_image()[:, :, ::-1]
                 out.write(frame)
@@ -235,4 +275,5 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
-    evaluate(args)
+    evaluation_obj = Evaluation(args)
+    evaluation_obj.evaluate()

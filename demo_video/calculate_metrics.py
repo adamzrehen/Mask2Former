@@ -1,7 +1,7 @@
 from utils import check_overlap
 
 
-def compute_detection_statistics(masks, prediction_masks):
+def compute_detection_statistics(masks, prediction_masks, ignore_prediction_label=True):
 
     inference = {}
     for mask_id, masks_dict in enumerate(masks):
@@ -15,10 +15,18 @@ def compute_detection_statistics(masks, prediction_masks):
 
                 # Handle predictions when they are available
                 overlap = 0
-                if obj_label in prediction_masks:
-                    if mask_id < len(prediction_masks[obj_label]):
-                        pred_mask = prediction_masks[obj_label][mask_id]
-                        overlap = check_overlap(mask, pred_mask)
+                if ignore_prediction_label:
+                    for obj_label, prediction_mask in prediction_masks.items():
+                        if mask_id < len(prediction_mask):
+                            pred_mask = prediction_mask[mask_id]
+                            overlap_ = check_overlap(mask, pred_mask)
+                            if overlap_ > overlap:
+                                overlap = overlap_
+                else:
+                    if obj_label in prediction_masks:
+                        if mask_id < len(prediction_masks[obj_label]):
+                            pred_mask = prediction_masks[obj_label][mask_id]
+                            overlap = check_overlap(mask, pred_mask)
 
                 if mask is not None and mask.sum() > 0 and overlap:
                     inference[obj_label]['detections'] += 1

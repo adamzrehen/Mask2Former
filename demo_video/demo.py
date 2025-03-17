@@ -86,9 +86,6 @@ class Evaluation:
         self.cfg = setup_cfg(args)
         self.demo = VisualizationDemo(self.cfg)
 
-        # For storing inference statistics
-        self.inference_statistics = {}
-
         # Create output directory if specified
         if self.args.output:
             os.makedirs(self.args.output, exist_ok=True)
@@ -108,6 +105,7 @@ class Evaluation:
         """
         vid_frames = []
         masks = []
+        inference_statistics = {}
 
         # Expand the input path if only one argument is provided
         if len(self.args.input) == 1:
@@ -176,8 +174,8 @@ class Evaluation:
         # Compute and save inference statistics if an output folder is specified
         if self.args.inference_output:
             inference = compute_detection_statistics(masks, prediction_masks)
-            self.inference_statistics[video_name] = {clip: inference}
-            new_df = convert_to_df(self.inference_statistics)
+            inference_statistics[video_name] = {clip: inference}
+            new_df = convert_to_df(inference_statistics)
             csv_path = os.path.join(self.args.inference_output, 'inference.csv')
             if os.path.exists(csv_path):
                 existing_df = pd.read_csv(csv_path)

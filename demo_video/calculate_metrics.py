@@ -2,7 +2,6 @@ from utils import check_overlap
 
 
 def compute_detection_statistics(masks, prediction_masks, ignore_prediction_label=True):
-
     inference = {}
     for mask_id, masks_dict in enumerate(masks):
         ok_image = True
@@ -16,7 +15,7 @@ def compute_detection_statistics(masks, prediction_masks, ignore_prediction_labe
                 # Handle predictions when they are available
                 overlap = 0
                 if ignore_prediction_label:
-                    for obj_label, prediction_mask in prediction_masks.items():
+                    for key, prediction_mask in prediction_masks.items():
                         if mask_id < len(prediction_mask):
                             pred_mask = prediction_mask[mask_id]
                             overlap_ = check_overlap(mask, pred_mask)
@@ -38,17 +37,20 @@ def compute_detection_statistics(masks, prediction_masks, ignore_prediction_labe
                     ok_image = False
                     inference[obj_label]['processed'] += 1
         # Compute FAs
-        for obj_label, prediction_mask in prediction_masks.items():
+        for key, prediction_mask in prediction_masks.items():
+            overlap = 0
             if mask_id < len(prediction_mask):
                 pred_mask = prediction_mask[mask_id]
-                if pred_mask.sum() and (masks_dict is None or obj_label not in masks_dict or
-                                    masks_dict[obj_label].sum() == 0):
-                    inference[obj_label] = inference.get(obj_label, {'false_alarms': 0, 'processed': 0})
-                    inference[obj_label]['false_alarms'] += 1
-                    inference[obj_label]['processed'] += 1
+                if masks_dict is not None:
+                    for obj_label, mask in masks_dict.items():
+                        overlap += check_overlap(mask, pred_mask)
+                if overlap == 0 and pred_mask.sum():
+                    inference[-1] = inference.get(-1, {'ok': 0, 'false_alarms': 0, 'processed': 0})
+                    inference[-1]['false_alarms'] += 1
+                    inference[-1]['processed'] += 1
                     prediction = True
-    if not prediction and ok_image:
-        inference[-1] = inference.get(-1, {'ok': 0, 'processed': 0})
-        inference[-1]['ok'] += 1
-        inference[-1]['processed'] += 1
+        if not prediction and ok_image:
+            inference[-1] = inference.get(-1, {'ok': 0, 'false_alarms': 0, 'processed': 0})
+            inference[-1]['ok'] += 1
+            inference[-1]['processed'] += 1
     return inference

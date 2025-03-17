@@ -4,7 +4,7 @@ import os
 import tqdm
 from pathlib import Path
 from datetime import datetime
-from demo import run
+from demo import evaluate
 
 
 class Namespace:
@@ -34,7 +34,8 @@ def main(csv_file, output_path, config_file, base_dir, inference_output, save_vi
             'video_filename': file_name,
             'overlay_masks': True,
             'inference_output': inference_output,
-            'opts': []
+            'opts': [],
+            'load_predictions': False,
         }
 
         args = Namespace()
@@ -43,7 +44,7 @@ def main(csv_file, output_path, config_file, base_dir, inference_output, save_vi
 
         try:
             # Run the command
-            run(args)
+            evaluate(args)
             print(f"demo.py executed successfully for {file_name}.")
         except subprocess.CalledProcessError as e:
             print(f"An error occurred while executing demo.py for {file_name}: {e}")

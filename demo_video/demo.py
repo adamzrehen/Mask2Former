@@ -4,24 +4,19 @@ import argparse
 import glob
 import multiprocessing as mp
 import os
-
 # fmt: off
 import sys
-
 from networkx.algorithms.clique import enumerate_all_cliques
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 # fmt: on
 
-import tempfile
 import time
-import warnings
+import pickle
 import re
 import json
-
 import cv2
 import numpy as np
-import tqdm
 import pandas as pd
 from torch.cuda.amp import autocast
 from collections import defaultdict
@@ -33,8 +28,8 @@ from pathlib import Path
 from mask2former import add_maskformer2_config
 from mask2former_video import add_maskformer2_video_config
 from predictor import VisualizationDemo
-from pycocotools import mask as mask_utils
-from utils import show_mask
+from utils import show_mask, rle_decode_mask
+from  calculate_metrics import compute_detection_statistics
 
 # constants
 WINDOW_NAME = "mask2former video demo"
@@ -52,22 +47,6 @@ def setup_cfg(args):
     cfg.freeze()
     return cfg
 
-
-def rle_decode_mask(rle_dict):
-    stacked_masks = {}
-    for key, val in rle_dict.items():
-        mask = mask_utils.decode(val)
-        stacked_masks[int(key)] = mask
-    return stacked_masks
-
-
-def check_overlap(mask, prediction, min_overlap=50):
-    mask = mask.astype(bool)
-    prediction = prediction.astype(bool)
-    overlap = np.sum(mask & prediction)
-    if overlap >= min_overlap:
-        return True
-    return False
 
 def convert_to_df(data):
     rows = []
@@ -93,24 +72,7 @@ def convert_to_df(data):
     return df
 
 
-def test_opencv_video_format(codec, file_ext):
-    with tempfile.TemporaryDirectory(prefix="video_format_test") as dir:
-        filename = os.path.join(dir, "test_file" + file_ext)
-        writer = cv2.VideoWriter(
-            filename=filename,
-            fourcc=cv2.VideoWriter_fourcc(*codec),
-            fps=float(30),
-            frameSize=(10, 10),
-            isColor=True,
-        )
-        [writer.write(np.zeros((10, 10, 3), np.uint8)) for _ in range(30)]
-        writer.release()
-        if os.path.isfile(filename):
-            return True
-        return False
-
-
-def run(args):
+def evaluate(args):
     mp.set_start_method("spawn", force=True)
     setup_logger(name="fvcore")
     logger = setup_logger()
@@ -146,72 +108,40 @@ def run(args):
         video_name = Path(path).parents[2].name
         clip = int(clip_folder[5:])
         print(f'Processing: {video_name} clip {clip}')
-        start_time = time.time()
-        chunk_size = 30
-        predictions_list = []
-        visualized_output_list = []
-        for i in range(0, len(vid_frames), chunk_size):
-            chunk = vid_frames[i:i + chunk_size]
-            with autocast():
-                predictions, visualized_output = demo.run_on_video(chunk)
-                predictions_list.append(predictions)
-                visualized_output_list.append(visualized_output)
-            logger.info(
-                "detected {} instances per frame in {:.2f}s".format(
-                    len(predictions["pred_scores"]), time.time() - start_time
-                )
-            )
-        # Get statistics
-        if args.inference_output:
-            mask_id = 0
-            inference = {}
 
+        if args.load_predictions:
+            predictions_dir = os.path.join(args.inference_output, 'predictions')
+            with open(os.path.join(predictions_dir, f'{video_name}_{clip}.pkl'), 'rb') as f:
+                prediction_masks = pickle.load(f)
+        else:
+            start_time = time.time()
+            chunk_size = 30
+            predictions_list = []
+            visualized_output_list = []
+            for i in range(0, len(vid_frames), chunk_size):
+                chunk = vid_frames[i:i + chunk_size]
+                with autocast():
+                    predictions, visualized_output = demo.run_on_video(chunk)
+                    predictions_list.append(predictions)
+                    visualized_output_list.append(visualized_output)
+                logger.info(
+                    "detected {} instances per frame in {:.2f}s".format(
+                        len(predictions["pred_scores"]), time.time() - start_time))
             prediction_masks = defaultdict(list)
             for prediction in predictions_list:
                 for k, pred_label in enumerate(prediction['pred_labels']):
                     pred_list = [i for i in prediction['pred_masks'][k].cpu().detach().numpy()]
                     prediction_masks[pred_label].extend(pred_list)
 
+            # Save predictions
+            predictions_dir = os.path.join(args.inference_output, 'predictions')
+            os.makedirs(predictions_dir, exist_ok=True)
+            with open(os.path.join(predictions_dir, f'{video_name}_{clip}.pkl'), 'wb') as f:
+                pickle.dump(prediction_masks, f)
 
-            for mask_id, masks_dict in enumerate(masks):
-                ok_image = True
-                prediction = False
-                if masks_dict is not None:
-                    for obj_label, mask in masks_dict.items():  # Iterate through each object label and its mask
-                        if obj_label not in inference:
-                            inference[obj_label] = {'misdetections': 0, 'detections': 0, 'false_alarms': 0,
-                                                    'ok': 0, 'processed': 0}
-
-                        # Handle predictions when they are available
-                        overlap = 0
-                        if obj_label in prediction_masks:
-                            if mask_id < len(prediction_masks[obj_label]):
-                                pred_mask = prediction_masks[obj_label][mask_id]
-                                overlap = check_overlap(mask, pred_mask)
-
-                        if mask is not None and mask.sum() > 0 and overlap:
-                            inference[obj_label]['detections'] += 1
-                            prediction = True
-                            ok_image = False
-                            inference[obj_label]['processed'] += 1
-                        elif mask is not None and mask.sum() > 0 and not overlap:
-                            inference[obj_label]['misdetections'] += 1
-                            ok_image = False
-                            inference[obj_label]['processed'] += 1
-                # Compute FAs
-                for obj_label, prediction_mask in prediction_masks.items():
-                    if mask_id < len(prediction_mask):
-                        pred_mask = prediction_mask[mask_id]
-                        if pred_mask.sum() and (masks_dict is None or obj_label not in masks_dict or
-                                                masks_dict[obj_label].sum() == 0):
-                            inference[obj_label] = inference.get(obj_label, {'false_alarms': 0, 'processed': 0})
-                            inference[obj_label]['false_alarms'] += 1
-                            inference[obj_label]['processed'] += 1
-                            prediction = True
-                if not prediction and ok_image:
-                    inference[-1] = inference.get(-1, {'ok': 0, 'processed': 0})
-                    inference[-1]['ok'] += 1
-                    inference[-1]['processed'] += 1
+        # Get statistics
+        if args.inference_output:
+            inference = compute_detection_statistics(masks, prediction_masks)
 
             inference_statistics[video_name] = {clip: inference}
             new_df = convert_to_df(inference_statistics)
@@ -220,10 +150,8 @@ def run(args):
                 new_df = pd.concat([new_df, existing_df], ignore_index=True)
             new_df.to_csv(os.path.join(args.inference_output, 'inference.csv'), index=False)
 
-        predictions = [item for sublist in predictions_list for item in sublist]
-        visualized_output = [item for sublist in visualized_output_list for item in sublist]
-
         if args.output:
+            visualized_output = [item for sublist in visualized_output_list for item in sublist]
             if args.save_frames:
                 for path, _vis_output in zip(args.input, visualized_output):
                     out_filename = os.path.join(args.output, os.path.basename(path))
@@ -261,9 +189,7 @@ def run(args):
             predictions, visualized_output = demo.run_on_video(vid_frames)
         logger.info(
             "detected {} instances per frame in {:.2f}s".format(
-                len(predictions["pred_scores"]), time.time() - start_time
-            )
-        )
+                len(predictions["pred_scores"]), time.time() - start_time))
 
         if args.output:
             if args.save_frames:
@@ -293,8 +219,8 @@ def get_args():
                                                    "this will be treated as frames of a video")
     parser.add_argument("--output", help="A file or directory to save output visualizations. If not given, "
                                          "will show output in an OpenCV window.")
-    parser.add_argument("--inference_output", help="A file or directory to save output visualizations. If "
-                                                   "not given, will show output in an OpenCV window.")
+    parser.add_argument("--inference_output", help="A directory with inference results")
+    parser.add_argument("--load_predictions", default=False, help="Load saved predictions")
     parser.add_argument("--video_filename",help="Name of output video", default="visualization")
     parser.add_argument("--save-frames", default=False, help="Save frame level image outputs.")
     parser.add_argument("--confidence-threshold", type=float, default=0.5,
@@ -309,4 +235,4 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
-    run(args)
+    evaluate(args)

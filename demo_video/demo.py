@@ -124,7 +124,7 @@ class Evaluation:
             if self.args.overlay_masks:
                 clip_folder = Path(path).parent.stem
                 mask_path = Path(path).parents[2] / 'output_masks' / clip_folder / (Path(path).stem + '.json')
-                mask = None
+                mask = {}
                 if os.path.exists(mask_path):
                     with open(mask_path, 'r') as f:
                         rle_data = json.load(f)

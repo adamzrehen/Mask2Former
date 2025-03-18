@@ -148,6 +148,7 @@ class Evaluation:
                 chunk = vid_frames[i:i + chunk_size]
                 with autocast():
                     predictions, visualized_output = self.demo.run_on_video(chunk)
+                    predictions['chunk_size'] = len(chunk)
                     predictions_list.append(predictions)
                     visualized_output_list.append(visualized_output)
                 self.logger.info(
@@ -156,11 +157,14 @@ class Evaluation:
                     )
                 )
             # Combine predictions from all chunks
-            prediction_masks = defaultdict(list)
+            prediction_masks = []
             for prediction in predictions_list:
-                for k, pred_label in enumerate(prediction['pred_labels']):
-                    pred_list = [i for i in prediction['pred_masks'][k].cpu().detach().numpy()]
-                    prediction_masks[pred_label].extend(pred_list)
+                if prediction['pred_labels']:
+                    for k, pred_label in enumerate(prediction['pred_labels']):
+                        for pred_mask in prediction['pred_masks'][k].cpu().detach().numpy():
+                            prediction_masks.append({pred_label: pred_mask})
+                else:
+                    prediction_masks.extend([{}]*prediction['chunk_size'])
 
             # Save the predictions for later use
             predictions_dir = os.path.join(self.args.inference_output, 'predictions')

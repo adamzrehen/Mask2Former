@@ -7,7 +7,9 @@ def compute_detection_statistics(masks, prediction_masks, min_overlap=50):
 
     for mask_id, masks_dict in enumerate(masks):
         matches_data = {'matches_per_obj': {}, 'unmatched': {}}  # New dictionary to hold match-related info for this mask_id
-        unmatched = set(prediction_masks.keys())  # Start with all keys as unmatched
+        unmatched = ()
+        if mask_id < len(prediction_masks):
+            unmatched = set([key for key, val in prediction_masks[mask_id].items() if val.sum()]) # Start with all keys as unmatched
 
         for obj_label, mask in masks_dict.items():
             # Create a separate dictionary for storing matches and mismatches
@@ -18,24 +20,15 @@ def compute_detection_statistics(masks, prediction_masks, min_overlap=50):
             }
 
             matched_prediction = False
-            for key, prediction_mask in prediction_masks.items():
-                if mask_id >= len(prediction_mask):
-                    unmatched.discard(key)
-                    continue  # Skip if there's no mask at this index
-
-                pred_mask = prediction_mask[mask_id]
-                overlap = compute_overlap(mask, pred_mask)
-
-                if overlap > min_overlap:
-                    # If object labels match, add to 'matches'; otherwise, add to 'mismatches'
-                    match_list = match_info['matches'] if obj_label == key else match_info['mismatches']
-                    match_list.append({'object_label': key, 'overlap': overlap})
-                    unmatched.discard(key)  # Remove from unmatched
-                    matched_prediction = True
-
-                # If the prediction was empty, remove from unmatched
-                if pred_mask.sum() == 0:
-                    unmatched.discard(key)
+            if mask_id < len(prediction_masks):
+                for key, pred_mask in prediction_masks[mask_id].items():
+                    overlap = compute_overlap(mask, pred_mask)
+                    if overlap > min_overlap:
+                        # If object labels match, add to 'matches'; otherwise, add to 'mismatches'
+                        match_list = match_info['matches'] if obj_label == key else match_info['mismatches']
+                        match_list.append({'object_label': key, 'overlap': overlap})
+                        unmatched.discard(key)  # Remove from unmatched
+                        matched_prediction = True
 
             if not matched_prediction and mask.sum():
                 match_info['misdetections'].append({'object_label': obj_label, 'overlap': 0})

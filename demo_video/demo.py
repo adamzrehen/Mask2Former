@@ -86,9 +86,6 @@ class Evaluation:
         self.cfg = setup_cfg(args)
         self.demo = VisualizationDemo(self.cfg)
 
-        # Create output directory if specified
-        if self.args.output:
-            os.makedirs(self.args.output, exist_ok=True)
 
     def evaluate(self):
         """
@@ -184,6 +181,7 @@ class Evaluation:
 
         # Save the visualized outputs if an output directory is provided
         if self.args.output:
+            os.makedirs(self.args.output, exist_ok=True)
             # Flatten the list of visualized outputs
             visualized_output = [item for sublist in visualized_output_list for item in sublist]
             if self.args.save_frames:
@@ -260,7 +258,7 @@ def get_args():
     parser.add_argument("--inference_output", help="A directory with inference results")
     parser.add_argument("--load_predictions", default=False, help="Load saved predictions")
     parser.add_argument("--video_filename",help="Name of output video", default="visualization")
-    parser.add_argument("--save-frames", default=False, help="Save frame level image outputs.")
+    parser.add_argument("--save_frames", default=False, help="Save frame level image outputs.")
     parser.add_argument("--confidence-threshold", type=float, default=0.5,
                         help="Minimum score for instance predictions to be shown")
     parser.add_argument("--opts", help="Modify config options using the command-line 'KEY VALUE' pairs",

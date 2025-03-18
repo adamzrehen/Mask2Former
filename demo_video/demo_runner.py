@@ -15,7 +15,7 @@ class Namespace:
 
 
 def main(csv_file, output_path, config_file, base_dir, inference_output, save_visualizations,
-         load_predictions):
+         load_predictions, save_frames):
 
     df = pd.read_csv(csv_file)
     grouped_videos = df.groupby(['video_name', 'clip_id'])
@@ -38,6 +38,7 @@ def main(csv_file, output_path, config_file, base_dir, inference_output, save_vi
             'inference_output': inference_output,
             'opts': [],
             'load_predictions': load_predictions,
+            'save_frames': save_frames,
         }
 
         args = Namespace()
@@ -64,12 +65,14 @@ if __name__ == "__main__":
     parser.add_argument("--base_dir", required=True, help="Base directory for input video frames")
     parser.add_argument("--inference_output", required=False, default='',
                         help="Output directory for inference stats")
-    parser.add_argument("--save_visualizations", required=False, default=False, help="Save visualizations")
-    parser.add_argument("--load_predictions", default=False, help="Load saved predictions")
+    parser.add_argument("--save_visualizations", required=False, default=0, type=int,
+                        help="Save visualizations")
+    parser.add_argument("--load_predictions", default=0, type=int, help="Load saved predictions")
+    parser.add_argument("--save_frames", default=False, help="Save frame level image outputs.")
     args = parser.parse_args()
 
     main(args.csv_file, args.output_path, args.config_file, args.base_dir, args.inference_output, args.save_visualizations,
-         args.load_predictions)
+         args.load_predictions, args.save_frames)
 
 
     # --csv_file="/home/adam/Documents/Experiments/Mask2Former/Test on different clip, same video January23_2025/train_split.csv"

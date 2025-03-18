@@ -21,13 +21,11 @@ def get_color_map():
     }
 
 
-def compute_overlap(mask, prediction, min_overlap=50):
+def compute_overlap(mask, prediction):
     mask = mask.astype(bool)
     prediction = prediction.astype(bool)
     overlap = np.sum(mask & prediction)
-    if overlap >= min_overlap:
-        return True
-    return False
+    return overlap
 
 
 def show_mask(mask, image=None, obj_id=None):

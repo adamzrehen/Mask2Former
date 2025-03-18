@@ -60,6 +60,7 @@ def compute_detection_statistics(masks, prediction_masks, min_overlap=50):
         if len(match_info['unmatched']):
             inference[-1] = inference.get(-1, {'ok': 0, 'false_alarms': 0, 'processed': 0})
             inference[-1]['false_alarms'] += 1
+            inference[-1]['processed'] += 1
 
         if (sum([len(_['matches']) + len(_['mismatches']) + len(_['misdetections']) for _ in
                  match_info['matches_per_obj'].values()]) == 0 and len(match_info['unmatched']) == 0):

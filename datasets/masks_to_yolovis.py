@@ -137,7 +137,7 @@ def main(base_dir, csv_path, output_json, test=False):
     dataframe = pd.read_csv(csv_path)
 
     # Group by 'Video' and 'Clip ID'
-    grouped = dataframe.groupby(['video_name', 'clip_id'])
+    grouped = dataframe.groupby(['unique_name'])
 
     if test:
         grouped = split_groups(grouped, n_splits=5)

@@ -39,6 +39,7 @@ def main(csv_file, output_path, config_file, base_dir, inference_output, save_vi
             'opts': [],
             'load_predictions': load_predictions,
             'save_frames': save_frames,
+            'frames': list(group[1]['frame_num_in_clip'])
         }
 
         args = Namespace()

@@ -114,6 +114,8 @@ class Evaluation:
             self.args.input,
             key=lambda s: int(re.search(r'(\d+)\.(png|jpg)$', s).group(1))
         )
+        # Filter by test frames
+        sorted_paths = [_ for k,_ in enumerate(sorted_paths) if k + 1 in self.args.frames]
         for path in sorted_paths:
             if not self.args.load_predictions:
                 img = read_image(path, format="BGR")
@@ -131,12 +133,13 @@ class Evaluation:
         # Derive video name and clip number from the last path processed
         video_name = Path(path).parents[2].name
         clip = int(clip_folder[5:])
+        frame = self.args.frames[0]
         print(f'Processing: {video_name} clip {clip}')
 
         # Load predictions if already available; otherwise run inference
         if self.args.load_predictions:
             predictions_dir = os.path.join(self.args.inference_output, 'predictions')
-            with open(os.path.join(predictions_dir, f'{video_name}_{clip}.pkl'), 'rb') as f:
+            with open(os.path.join(predictions_dir, f'{video_name}_{clip}_{frame}.pkl'), 'rb') as f:
                 prediction_masks = pickle.load(f)
         else:
             start_time = time.time()

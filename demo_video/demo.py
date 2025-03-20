@@ -134,7 +134,7 @@ class Evaluation:
         video_name = Path(path).parents[2].name
         clip = int(clip_folder[5:])
         frame = self.args.frames[0]
-        print(f'Processing: {video_name} clip {clip}')
+        print(f'Processing: {video_name} clip {clip} frame {frame}')
 
         # Load predictions if already available; otherwise run inference
         if self.args.load_predictions:
@@ -172,7 +172,7 @@ class Evaluation:
             # Save the predictions for later use
             predictions_dir = os.path.join(self.args.inference_output, 'predictions')
             os.makedirs(predictions_dir, exist_ok=True)
-            with open(os.path.join(predictions_dir, f'{video_name}_{clip}.pkl'), 'wb') as f:
+            with open(os.path.join(predictions_dir, f'{video_name}_{clip}_{frame}.pkl'), 'wb') as f:
                 pickle.dump(prediction_masks, f)
 
         # Compute and save inference statistics if an output folder is specified

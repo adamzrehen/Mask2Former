@@ -18,14 +18,14 @@ def main(csv_file, output_path, config_file, base_dir, inference_output, save_vi
          load_predictions, save_frames):
 
     df = pd.read_csv(csv_file)
-    grouped_videos = df.groupby(['video_name', 'clip_id'])
+    grouped_videos = df.groupby(['unique_name'])
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.join(output_path, timestamp)
     os.mkdir(output_dir)
     evaluation_obj = None
 
     for group in tqdm.tqdm(grouped_videos):
-        file_name = group[0][0] + '_clip_' + str(group[0][1])
+        file_name = group[1]['video_name'].iloc[0] + '_clip_' + str(group[1]['clip_id'].iloc[0]) + '_frame_' + str(group[1]['frame_num_in_clip'].iloc[0])
         output_path = os.path.join(output_dir, file_name)
         input_path = [os.path.join(Path(group[1]['relative_image_path'].iloc[0]).parent, _)
                       for _ in os.listdir(Path(group[1]['relative_image_path'].iloc[0]).parent)]

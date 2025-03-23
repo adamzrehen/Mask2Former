@@ -38,8 +38,12 @@ def evaluate(inference_file, summary_file, output_dir):
     fig, axes = plt.subplots(2, 1, figsize=(10, 12))
 
     # Format the values to 2 decimal places
-    summary_per_video['Detection Rate'] = summary_per_video['Detection Rate'].apply(lambda x: f"{x:.2f}")
-    summary_per_video['False Alarm Rate'] = summary_per_video['False Alarm Rate'].apply(lambda x: f"{x:.2f}")
+    summary_per_video['Detection Rate'] = summary_per_video['Detection Rate'].apply(
+        lambda x: "-" if pd.isna(x) else f"{x:.2f}"
+    )
+    summary_per_video['False Alarm Rate'] = summary_per_video['False Alarm Rate'].apply(
+        lambda x: "-" if pd.isna(x) else f"{x:.2f}"
+    )
 
     # Prepare the table data
     table_data = summary_per_video[['Video', 'Detection Rate', 'False Alarm Rate']].values

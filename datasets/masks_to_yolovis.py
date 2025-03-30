@@ -68,8 +68,11 @@ def process_sequence(group, sequence_id, base_dir, misalignment_dict):
             no_objects += 1
         else:
             # Read RLE mask from JSON file
-            with open(mask_path, 'r') as f:
-                rle_data = json.load(f)
+            try:
+                with open(mask_path, 'r') as f:
+                    rle_data = json.load(f)
+            except:
+                rle_data = None
             if not rle_data:
                 img = np.zeros((height, width))
                 rle_data = rle_encode_mask({-1: img})
@@ -109,7 +112,7 @@ def process_sequence(group, sequence_id, base_dir, misalignment_dict):
                     "areas": [None for _ in range(len(group))],
                     "id": sequence_id,  # according to ytvoseval this should be video_id
                     "video_id": sequence_id,
-                    "category_id": category_id,  # set to Adenoma for now
+                    "category_id": 1,  # category_id
                     "iscrowd": 0,
                     "length": 1
                 }
@@ -198,6 +201,6 @@ def main(base_dir, csv_path, output_json, test=False):
 # Example usage
 if __name__ == "__main__":
     base_dir = "/home/cortica/mnt/qnap/annotation_data/data/sam2/"  # Root directory containing sequence folders
-    csv_path = '/home/cortica/Documents/Adam/Experiments/Mask2Former/test_split.csv'
-    output_json = "/home/cortica/Documents/Adam/Experiments/Mask2Former/test_split.json"
-    main(base_dir, csv_path, output_json, test=True)
+    csv_path = '/home/cortica/Documents/Adam/Experiments/Mask2Former/Experiment 20/test.csv'
+    output_json = "/home/cortica/Documents/Adam/Experiments/Mask2Former/Experiment 20/test.json"
+    main(base_dir, csv_path, output_json, test=False)
